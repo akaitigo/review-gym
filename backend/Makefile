@@ -1,4 +1,4 @@
-.PHONY: build test lint format check clean tidy migrate migrate-down
+.PHONY: build test lint format check clean tidy migrate migrate-down seed
 
 # Go build settings
 GOFLAGS ?= -trimpath
@@ -28,6 +28,9 @@ migrate:
 
 migrate-down:
 	go run ./cmd/migrate -direction down
+
+seed:
+	go run ./cmd/seed
 
 clean:
 	go clean -cache -testcache
