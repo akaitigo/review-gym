@@ -15,6 +15,7 @@ func newTestHandler() *Handler {
 		Exercises:  ms,
 		Reviews:    ms,
 		References: ms,
+		Scores:     ms,
 	}
 }
 
