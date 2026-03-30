@@ -107,3 +107,80 @@ func TestInitialSchemaDownDropsTables(t *testing.T) {
 		}
 	}
 }
+
+func TestUpdateCategoriesMigrationUp(t *testing.T) {
+	content, err := os.ReadFile("000002_update_categories.up.sql")
+	if err != nil {
+		t.Fatalf("failed to read migration 000002 up: %v", err)
+	}
+
+	sql := string(content)
+
+	// Verify new category system is defined
+	expectedCategories := []string{
+		"security",
+		"performance",
+		"design",
+		"readability",
+		"error-handling",
+	}
+
+	for _, cat := range expectedCategories {
+		if !strings.Contains(sql, cat) {
+			t.Errorf("migration 000002 up missing category %q", cat)
+		}
+	}
+
+	// Verify new columns are added
+	expectedColumns := []string{
+		"category_tags",
+		"total_exercises_completed",
+		"consecutive_days",
+		"last_practice_at",
+		"attempt_number",
+		"duration_seconds",
+	}
+
+	for _, col := range expectedColumns {
+		if !strings.Contains(sql, col) {
+			t.Errorf("migration 000002 up missing column %q", col)
+		}
+	}
+}
+
+func TestUpdateCategoriesMigrationDown(t *testing.T) {
+	content, err := os.ReadFile("000002_update_categories.down.sql")
+	if err != nil {
+		t.Fatalf("failed to read migration 000002 down: %v", err)
+	}
+
+	sql := string(content)
+
+	// Verify rollback restores original categories
+	originalCategories := []string{
+		"correctness",
+		"maintainability",
+	}
+
+	for _, cat := range originalCategories {
+		if !strings.Contains(sql, cat) {
+			t.Errorf("migration 000002 down missing original category %q", cat)
+		}
+	}
+
+	// Verify columns are dropped
+	droppedColumns := []string{
+		"category_tags",
+		"total_exercises_completed",
+		"consecutive_days",
+		"last_practice_at",
+		"attempt_number",
+		"duration_seconds",
+	}
+
+	for _, col := range droppedColumns {
+		if !strings.Contains(sql, col) {
+			t.Errorf("migration 000002 down missing DROP for column %q", col)
+		}
+	}
+}
