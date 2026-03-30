@@ -1,6 +1,7 @@
 package scoring
 
 import (
+	"math"
 	"testing"
 
 	"github.com/akaitigo/review-gym/internal/model"
@@ -13,7 +14,7 @@ func TestCompute_PerfectScore(t *testing.T) {
 			ExerciseID: "ex-1",
 			FilePath:   "main.go",
 			LineNumber: 10,
-			Content:    "SQL injection",
+			Content:    "SQL injection vulnerability in user input",
 			Category:   model.CategorySecurity,
 			Severity:   model.SeverityCritical,
 		},
@@ -22,12 +23,13 @@ func TestCompute_PerfectScore(t *testing.T) {
 			ExerciseID: "ex-1",
 			FilePath:   "main.go",
 			LineNumber: 20,
-			Content:    "Error not checked",
+			Content:    "Error not checked after database call",
 			Category:   model.CategoryErrorHandling,
 			Severity:   model.SeverityMajor,
 		},
 	}
 
+	// Identical content gives perfect content similarity.
 	comments := []model.ReviewComment{
 		{
 			ID:         "c-1",
@@ -35,7 +37,7 @@ func TestCompute_PerfectScore(t *testing.T) {
 			UserID:     "user-1",
 			FilePath:   "main.go",
 			LineNumber: 10,
-			Content:    "SQL injection found",
+			Content:    "SQL injection vulnerability in user input",
 			Category:   model.CategorySecurity,
 		},
 		{
@@ -44,7 +46,7 @@ func TestCompute_PerfectScore(t *testing.T) {
 			UserID:     "user-1",
 			FilePath:   "main.go",
 			LineNumber: 20,
-			Content:    "Error not handled",
+			Content:    "Error not checked after database call",
 			Category:   model.CategoryErrorHandling,
 		},
 	}
@@ -130,7 +132,7 @@ func TestCompute_LineProximity(t *testing.T) {
 			ExerciseID: "ex-1",
 			FilePath:   "main.go",
 			LineNumber: 10,
-			Content:    "Issue here",
+			Content:    "Security issue found here",
 			Category:   model.CategorySecurity,
 			Severity:   model.SeverityMajor,
 		},
@@ -157,7 +159,7 @@ func TestCompute_LineProximity(t *testing.T) {
 					UserID:     "user-1",
 					FilePath:   "main.go",
 					LineNumber: tt.commentLine,
-					Content:    "Found issue",
+					Content:    "Security issue found here",
 					Category:   model.CategorySecurity,
 				},
 			}
@@ -248,7 +250,7 @@ func TestCompute_SeverityWeighting(t *testing.T) {
 			ExerciseID: "ex-1",
 			FilePath:   "main.go",
 			LineNumber: 10,
-			Content:    "Critical issue",
+			Content:    "Critical security vulnerability in authentication",
 			Category:   model.CategorySecurity,
 			Severity:   model.SeverityCritical, // weight 3.0
 		},
@@ -257,7 +259,7 @@ func TestCompute_SeverityWeighting(t *testing.T) {
 			ExerciseID: "ex-1",
 			FilePath:   "main.go",
 			LineNumber: 20,
-			Content:    "Info issue",
+			Content:    "Readability issue with variable naming",
 			Category:   model.CategoryReadability,
 			Severity:   model.SeverityInfo, // weight 0.5
 		},
@@ -271,7 +273,7 @@ func TestCompute_SeverityWeighting(t *testing.T) {
 			UserID:     "user-1",
 			FilePath:   "main.go",
 			LineNumber: 10,
-			Content:    "Found critical",
+			Content:    "Critical security vulnerability in authentication",
 			Category:   model.CategorySecurity,
 		},
 	}
@@ -291,7 +293,7 @@ func TestCompute_CategoryScores(t *testing.T) {
 			ID:         "ref-1",
 			FilePath:   "main.go",
 			LineNumber: 10,
-			Content:    "Security issue 1",
+			Content:    "SQL injection vulnerability in query builder",
 			Category:   model.CategorySecurity,
 			Severity:   model.SeverityCritical,
 		},
@@ -299,7 +301,7 @@ func TestCompute_CategoryScores(t *testing.T) {
 			ID:         "ref-2",
 			FilePath:   "main.go",
 			LineNumber: 20,
-			Content:    "Security issue 2",
+			Content:    "Cross-site scripting in template rendering",
 			Category:   model.CategorySecurity,
 			Severity:   model.SeverityMajor,
 		},
@@ -307,19 +309,19 @@ func TestCompute_CategoryScores(t *testing.T) {
 			ID:         "ref-3",
 			FilePath:   "main.go",
 			LineNumber: 30,
-			Content:    "Performance issue",
+			Content:    "Performance issue with N+1 query",
 			Category:   model.CategoryPerformance,
 			Severity:   model.SeverityMinor,
 		},
 	}
 
-	// User finds only one security issue.
+	// User finds only one security issue with matching content.
 	comments := []model.ReviewComment{
 		{
 			ID:         "c-1",
 			FilePath:   "main.go",
 			LineNumber: 10,
-			Content:    "Found it",
+			Content:    "SQL injection vulnerability in query builder",
 			Category:   model.CategorySecurity,
 		},
 	}
@@ -356,7 +358,7 @@ func TestCompute_OneToOneMatching(t *testing.T) {
 			ID:         "ref-1",
 			FilePath:   "main.go",
 			LineNumber: 10,
-			Content:    "Issue",
+			Content:    "Security vulnerability found in authentication logic",
 			Category:   model.CategorySecurity,
 			Severity:   model.SeverityMajor,
 		},
@@ -367,14 +369,14 @@ func TestCompute_OneToOneMatching(t *testing.T) {
 			ID:         "c-1",
 			FilePath:   "main.go",
 			LineNumber: 10,
-			Content:    "Comment 1",
+			Content:    "Security vulnerability in authentication",
 			Category:   model.CategorySecurity,
 		},
 		{
 			ID:         "c-2",
 			FilePath:   "main.go",
 			LineNumber: 11,
-			Content:    "Comment 2",
+			Content:    "Authentication logic has security vulnerability",
 			Category:   model.CategorySecurity,
 		},
 	}
@@ -421,6 +423,234 @@ func TestToScore(t *testing.T) {
 	}
 	if err := score.Validate(); err != nil {
 		t.Errorf("validation failed: %v", err)
+	}
+}
+
+// --- Content validation tests ---
+
+func TestCompute_EmptyContentLowScore(t *testing.T) {
+	refs := []model.ReferenceReview{
+		{
+			ID:         "ref-1",
+			ExerciseID: "ex-1",
+			FilePath:   "main.go",
+			LineNumber: 10,
+			Content:    "SQL injection vulnerability in user input handling",
+			Category:   model.CategorySecurity,
+			Severity:   model.SeverityCritical,
+		},
+	}
+
+	// Empty content should not match (below similarity threshold).
+	comments := []model.ReviewComment{
+		{
+			ID:         "c-1",
+			ExerciseID: "ex-1",
+			UserID:     "user-1",
+			FilePath:   "main.go",
+			LineNumber: 10,
+			Content:    "",
+			Category:   model.CategorySecurity,
+		},
+	}
+
+	result := Compute(comments, refs)
+
+	if len(result.Matches) != 0 {
+		t.Errorf("matches = %d, want 0 (empty content should not match)", len(result.Matches))
+	}
+	if result.PrecisionScore != 0 {
+		t.Errorf("precision = %.1f, want 0 (empty content)", result.PrecisionScore)
+	}
+	if len(result.FalsePositives) != 1 {
+		t.Errorf("false positives = %d, want 1", len(result.FalsePositives))
+	}
+	if len(result.MissedReviews) != 1 {
+		t.Errorf("missed = %d, want 1", len(result.MissedReviews))
+	}
+}
+
+func TestCompute_ShortContentPenalty(t *testing.T) {
+	refs := []model.ReferenceReview{
+		{
+			ID:         "ref-1",
+			ExerciseID: "ex-1",
+			FilePath:   "main.go",
+			LineNumber: 10,
+			Content:    "SQL injection vulnerability in user input handling",
+			Category:   model.CategorySecurity,
+			Severity:   model.SeverityCritical,
+		},
+	}
+
+	// Short content (< 10 chars) that still matches some words should get
+	// a lower score than a full-length content with the same similarity.
+	shortComment := []model.ReviewComment{
+		{
+			ID:         "c-short",
+			ExerciseID: "ex-1",
+			UserID:     "user-1",
+			FilePath:   "main.go",
+			LineNumber: 10,
+			Content:    "SQL input", // 9 chars, some overlap
+			Category:   model.CategorySecurity,
+		},
+	}
+
+	longComment := []model.ReviewComment{
+		{
+			ID:         "c-long",
+			ExerciseID: "ex-1",
+			UserID:     "user-1",
+			FilePath:   "main.go",
+			LineNumber: 10,
+			Content:    "SQL injection vulnerability in user input handling",
+			Category:   model.CategorySecurity,
+		},
+	}
+
+	shortResult := Compute(shortComment, refs)
+	longResult := Compute(longComment, refs)
+
+	if longResult.PrecisionScore <= shortResult.PrecisionScore {
+		t.Errorf("long content precision (%.1f) should be > short content precision (%.1f)",
+			longResult.PrecisionScore, shortResult.PrecisionScore)
+	}
+}
+
+func TestCompute_HighContentSimilarityBoostsScore(t *testing.T) {
+	refs := []model.ReferenceReview{
+		{
+			ID:         "ref-1",
+			ExerciseID: "ex-1",
+			FilePath:   "main.go",
+			LineNumber: 10,
+			Content:    "SQL injection vulnerability in user input handling",
+			Category:   model.CategorySecurity,
+			Severity:   model.SeverityCritical,
+		},
+	}
+
+	// High similarity content.
+	highSimComments := []model.ReviewComment{
+		{
+			ID:         "c-high",
+			ExerciseID: "ex-1",
+			UserID:     "user-1",
+			FilePath:   "main.go",
+			LineNumber: 10,
+			Content:    "SQL injection vulnerability in user input handling",
+			Category:   model.CategorySecurity,
+		},
+	}
+
+	// Lower similarity but still matching content.
+	lowSimComments := []model.ReviewComment{
+		{
+			ID:         "c-low",
+			ExerciseID: "ex-1",
+			UserID:     "user-1",
+			FilePath:   "main.go",
+			LineNumber: 10,
+			Content:    "There is a vulnerability in input validation logic here",
+			Category:   model.CategorySecurity,
+		},
+	}
+
+	highResult := Compute(highSimComments, refs)
+	lowResult := Compute(lowSimComments, refs)
+
+	if highResult.PrecisionScore <= lowResult.PrecisionScore {
+		t.Errorf("high similarity precision (%.1f) should be > low similarity precision (%.1f)",
+			highResult.PrecisionScore, lowResult.PrecisionScore)
+	}
+}
+
+func TestCompute_CorrectPositionIrrelevantContent(t *testing.T) {
+	refs := []model.ReferenceReview{
+		{
+			ID:         "ref-1",
+			ExerciseID: "ex-1",
+			FilePath:   "main.go",
+			LineNumber: 10,
+			Content:    "SQL injection vulnerability in user input handling",
+			Category:   model.CategorySecurity,
+			Severity:   model.SeverityCritical,
+		},
+	}
+
+	// Position and category are correct, but content is completely unrelated.
+	comments := []model.ReviewComment{
+		{
+			ID:         "c-1",
+			ExerciseID: "ex-1",
+			UserID:     "user-1",
+			FilePath:   "main.go",
+			LineNumber: 10,
+			Content:    "The weather today is sunny and warm outside",
+			Category:   model.CategorySecurity,
+		},
+	}
+
+	result := Compute(comments, refs)
+
+	// Unrelated content should not match (below similarity threshold).
+	if len(result.Matches) != 0 {
+		t.Errorf("matches = %d, want 0 (irrelevant content should not match)", len(result.Matches))
+	}
+	if result.PrecisionScore != 0 {
+		t.Errorf("precision = %.1f, want 0 (irrelevant content)", result.PrecisionScore)
+	}
+	if result.RecallScore != 0 {
+		t.Errorf("recall = %.1f, want 0 (irrelevant content)", result.RecallScore)
+	}
+}
+
+func TestContentSimilarity(t *testing.T) {
+	tests := []struct {
+		name string
+		a    string
+		b    string
+		want float64
+	}{
+		{"identical", "SQL injection vulnerability", "SQL injection vulnerability", 1.0},
+		{"empty both", "", "", 0.0},
+		{"empty one", "SQL injection", "", 0.0},
+		{"no overlap", "hello world", "foo bar baz", 0.0},
+		{"partial overlap", "SQL injection vulnerability", "SQL injection found", 0.5}, // 2/(3+4-2)
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := contentSimilarity(tt.a, tt.b)
+			if math.Abs(got-tt.want) > 0.01 {
+				t.Errorf("contentSimilarity(%q, %q) = %.3f, want %.3f", tt.a, tt.b, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMatchQuality(t *testing.T) {
+	// Perfect match: line delta 0, content similarity 1.0, long content.
+	perfect := Match{
+		UserComment:       model.ReviewComment{Content: "SQL injection vulnerability in user input"},
+		LineDelta:         0,
+		ContentSimilarity: 1.0,
+	}
+	if q := matchQuality(&perfect); math.Abs(q-1.0) > 0.01 {
+		t.Errorf("perfect match quality = %.3f, want 1.0", q)
+	}
+
+	// Short content match: should be penalised.
+	short := Match{
+		UserComment:       model.ReviewComment{Content: "SQL"},
+		LineDelta:         0,
+		ContentSimilarity: 1.0,
+	}
+	perfectQ := matchQuality(&perfect)
+	shortQ := matchQuality(&short)
+	if shortQ >= perfectQ {
+		t.Errorf("short content quality (%.3f) should be < perfect quality (%.3f)", shortQ, perfectQ)
 	}
 }
 

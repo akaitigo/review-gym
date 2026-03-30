@@ -14,10 +14,11 @@ func TestScoreExercise(t *testing.T) {
 	h.RegisterRoutes(mux)
 
 	// First, submit a review comment that matches a reference review.
+	// Content must closely match the reference to achieve full precision.
 	reviewBody := map[string]interface{}{
 		"file_path":   "internal/handler/user.go",
 		"line_number": 21,
-		"content":     "SQL injection vulnerability",
+		"content":     "SQL injection vulnerability: user input is directly concatenated into the SQL query string.",
 		"category":    "security",
 	}
 	b, _ := json.Marshal(reviewBody)
@@ -117,11 +118,11 @@ func TestScoreExercise_MultipleAttempts(t *testing.T) {
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
-	// Submit a comment.
+	// Submit a comment with content matching the reference review.
 	reviewBody := map[string]interface{}{
 		"file_path":   "internal/handler/user.go",
 		"line_number": 21,
-		"content":     "SQL injection",
+		"content":     "SQL injection vulnerability: user input is directly concatenated into the SQL query string.",
 		"category":    "security",
 	}
 	b, _ := json.Marshal(reviewBody)
@@ -168,7 +169,7 @@ func TestListScores(t *testing.T) {
 	reviewBody := map[string]interface{}{
 		"file_path":   "internal/handler/user.go",
 		"line_number": 21,
-		"content":     "SQL injection",
+		"content":     "SQL injection vulnerability: user input is directly concatenated into the SQL query string.",
 		"category":    "security",
 	}
 	b, _ := json.Marshal(reviewBody)

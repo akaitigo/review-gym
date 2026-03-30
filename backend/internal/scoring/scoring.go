@@ -6,12 +6,34 @@ package scoring
 import (
 	"encoding/json"
 	"math"
+	"strings"
+	"unicode"
 
 	"github.com/akaitigo/review-gym/internal/model"
 )
 
 // lineProximityThreshold defines the maximum line distance for a match.
 const lineProximityThreshold = 3
+
+// contentSimilarityThreshold defines the minimum Jaccard similarity for content
+// matching. Comments below this threshold are not considered a match even if
+// file path, category, and line proximity all pass.
+const contentSimilarityThreshold = 0.2
+
+// shortContentThreshold defines the minimum character count for content to avoid
+// a scoring penalty. Content shorter than this is penalised.
+const shortContentThreshold = 10
+
+// shortContentPenalty is the multiplier applied to content similarity when the
+// user comment content is shorter than shortContentThreshold.
+const shortContentPenalty = 0.5
+
+// positionWeight and contentWeight control the blend of position-based and
+// content-based factors in the overall match quality.
+const (
+	positionWeight = 0.5
+	contentWeight  = 0.5
+)
 
 // severityWeight returns the scoring weight for a given severity.
 func severityWeight(s model.Severity) float64 {
@@ -31,9 +53,10 @@ func severityWeight(s model.Severity) float64 {
 
 // Match represents a matched pair of user comment and reference review.
 type Match struct {
-	UserComment     model.ReviewComment   `json:"user_comment"`
-	ReferenceReview model.ReferenceReview `json:"reference_review"`
-	LineDelta       int                   `json:"line_delta"`
+	UserComment       model.ReviewComment   `json:"user_comment"`
+	ReferenceReview   model.ReferenceReview `json:"reference_review"`
+	LineDelta         int                   `json:"line_delta"`
+	ContentSimilarity float64               `json:"content_similarity"`
 }
 
 // Result holds the full scoring output for a review session.
@@ -52,10 +75,16 @@ type Result struct {
 func Compute(comments []model.ReviewComment, references []model.ReferenceReview) Result {
 	matches, matchedCommentIDs, matchedRefIDs := findMatches(comments, references)
 
-	// Precision: fraction of user comments that matched a reference.
+	// Precision: weighted fraction of user comments that matched a reference.
+	// Each match contributes its quality score (position proximity + content
+	// similarity) rather than counting as a simple binary hit.
 	precisionScore := 0.0
 	if len(comments) > 0 {
-		precisionScore = float64(len(matches)) / float64(len(comments)) * 100
+		totalQuality := 0.0
+		for i := range matches {
+			totalQuality += matchQuality(&matches[i])
+		}
+		precisionScore = totalQuality / float64(len(comments)) * 100
 	}
 
 	// Recall: weighted fraction of reference reviews found.
@@ -111,8 +140,9 @@ func Compute(comments []model.ReviewComment, references []model.ReferenceReview)
 }
 
 // findMatches performs greedy matching of user comments to reference reviews.
-// A match requires: same file path, same category, and line proximity <= threshold.
-// Each reference can match at most one comment (closest line wins).
+// A match requires: same file path, same category, line proximity <= threshold,
+// and content similarity >= contentSimilarityThreshold.
+// Each reference can match at most one comment (best combined score wins).
 func findMatches(comments []model.ReviewComment, references []model.ReferenceReview) ([]Match, map[string]bool, map[string]bool) {
 	matchedCommentIDs := make(map[string]bool)
 	matchedRefIDs := make(map[string]bool)
@@ -122,6 +152,7 @@ func findMatches(comments []model.ReviewComment, references []model.ReferenceRev
 	for _, ref := range references {
 		bestIdx := -1
 		bestDelta := lineProximityThreshold + 1
+		bestSimilarity := 0.0
 
 		for i, comment := range comments {
 			if matchedCommentIDs[comment.ID] {
@@ -134,17 +165,28 @@ func findMatches(comments []model.ReviewComment, references []model.ReferenceRev
 				continue
 			}
 			delta := abs(comment.LineNumber - ref.LineNumber)
-			if delta <= lineProximityThreshold && delta < bestDelta {
+			if delta > lineProximityThreshold {
+				continue
+			}
+			sim := contentSimilarity(comment.Content, ref.Content)
+			if sim < contentSimilarityThreshold {
+				continue
+			}
+			// Prefer closer line, then higher similarity.
+			if delta < bestDelta || (delta == bestDelta && sim > bestSimilarity) {
 				bestDelta = delta
+				bestSimilarity = sim
 				bestIdx = i
 			}
 		}
 
 		if bestIdx >= 0 {
+			sim := contentSimilarity(comments[bestIdx].Content, ref.Content)
 			matches = append(matches, Match{
-				UserComment:     comments[bestIdx],
-				ReferenceReview: ref,
-				LineDelta:       bestDelta,
+				UserComment:       comments[bestIdx],
+				ReferenceReview:   ref,
+				LineDelta:         bestDelta,
+				ContentSimilarity: sim,
 			})
 			matchedCommentIDs[comments[bestIdx].ID] = true
 			matchedRefIDs[ref.ID] = true
@@ -217,4 +259,53 @@ func abs(n int) int {
 
 func roundTo1(f float64) float64 {
 	return math.Round(f*10) / 10
+}
+
+// tokenize splits text into a set of normalised lowercase word tokens.
+func tokenize(text string) map[string]bool {
+	tokens := make(map[string]bool)
+	for _, word := range strings.FieldsFunc(strings.ToLower(text), func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	}) {
+		tokens[word] = true
+	}
+	return tokens
+}
+
+// contentSimilarity computes the Jaccard similarity coefficient between the
+// word-token sets of two strings. Returns a value in [0.0, 1.0].
+func contentSimilarity(a, b string) float64 {
+	setA := tokenize(a)
+	setB := tokenize(b)
+	if len(setA) == 0 && len(setB) == 0 {
+		return 0.0
+	}
+
+	intersection := 0
+	for token := range setA {
+		if setB[token] {
+			intersection++
+		}
+	}
+	union := len(setA) + len(setB) - intersection
+	if union == 0 {
+		return 0.0
+	}
+	return float64(intersection) / float64(union)
+}
+
+// matchQuality returns a quality score in [0.0, 1.0] for a given match.
+// It blends position proximity (closer line = higher) and content similarity,
+// applying a penalty for very short user comments.
+func matchQuality(m *Match) float64 {
+	// Position component: 1.0 for exact line, decaying to ~0.25 at threshold.
+	posScore := 1.0 - float64(m.LineDelta)/float64(lineProximityThreshold+1)
+
+	// Content component: direct similarity, with short-content penalty.
+	contScore := m.ContentSimilarity
+	if len(strings.TrimSpace(m.UserComment.Content)) < shortContentThreshold {
+		contScore *= shortContentPenalty
+	}
+
+	return positionWeight*posScore + contentWeight*contScore
 }
