@@ -618,12 +618,19 @@ func TestContentSimilarity(t *testing.T) {
 		{"empty one", "SQL injection", "", 0.0},
 		{"no overlap", "hello world", "foo bar baz", 0.0},
 		{"partial overlap", "SQL injection vulnerability", "SQL injection found", 0.5}, // 2/(3+4-2)
+		{"japanese identical", "SQLインジェクションの脆弱性", "SQLインジェクションの脆弱性", 1.0},
+		{"japanese paraphrase", "SQLインジェクションの脆弱性があります", "SQLインジェクション脆弱性が存在する", -1}, // > 0.0 check below
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := contentSimilarity(tt.a, tt.b)
-			if math.Abs(got-tt.want) > 0.01 {
+			if tt.want == -1 {
+				// Special case: just check > 0
+				if got <= 0 {
+					t.Errorf("contentSimilarity(%q, %q) = %.3f, want > 0", tt.a, tt.b, got)
+				}
+			} else if math.Abs(got-tt.want) > 0.01 {
 				t.Errorf("contentSimilarity(%q, %q) = %.3f, want %.3f", tt.a, tt.b, got, tt.want)
 			}
 		})

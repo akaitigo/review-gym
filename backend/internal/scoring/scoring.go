@@ -261,15 +261,51 @@ func roundTo1(f float64) float64 {
 	return math.Round(f*10) / 10
 }
 
-// tokenize splits text into a set of normalised lowercase word tokens.
+// tokenize splits text into a set of normalised tokens.
+// For CJK characters (Japanese/Chinese/Korean), each character becomes a separate token (unigram).
+// For Latin text, words are split on whitespace/punctuation as before.
 func tokenize(text string) map[string]bool {
 	tokens := make(map[string]bool)
-	for _, word := range strings.FieldsFunc(strings.ToLower(text), func(r rune) bool {
+	lower := strings.ToLower(text)
+
+	// Split into words first
+	words := strings.FieldsFunc(lower, func(r rune) bool {
 		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
-	}) {
-		tokens[word] = true
+	})
+
+	for _, word := range words {
+		// Check if the word contains CJK characters
+		hasCJK := false
+		for _, r := range word {
+			if isCJK(r) {
+				hasCJK = true
+				break
+			}
+		}
+
+		if hasCJK {
+			// CJK: character-level unigrams + bigrams for better matching
+			runes := []rune(word)
+			for i, r := range runes {
+				tokens[string(r)] = true
+				if i+1 < len(runes) {
+					tokens[string(runes[i:i+2])] = true // bigram
+				}
+			}
+		} else {
+			tokens[word] = true
+		}
 	}
 	return tokens
+}
+
+// isCJK returns true if the rune is a CJK Unified Ideograph or Hiragana/Katakana.
+func isCJK(r rune) bool {
+	return (r >= 0x4E00 && r <= 0x9FFF) || // CJK Unified Ideographs
+		(r >= 0x3040 && r <= 0x309F) || // Hiragana
+		(r >= 0x30A0 && r <= 0x30FF) || // Katakana
+		(r >= 0x3400 && r <= 0x4DBF) || // CJK Extension A
+		(r >= 0xF900 && r <= 0xFAFF) // CJK Compatibility Ideographs
 }
 
 // contentSimilarity computes the Jaccard similarity coefficient between the
