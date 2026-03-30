@@ -250,6 +250,57 @@ func TestMemoryStore_CountCompletedExercises(t *testing.T) {
 	}
 }
 
+func TestMemoryStore_GetCompletedExerciseIDs(t *testing.T) {
+	ms := NewMemoryStore()
+
+	_ = ms.SaveScore(&model.Score{UserID: "user-1", ExerciseID: "ex-1", AttemptNumber: 1})
+	_ = ms.SaveScore(&model.Score{UserID: "user-1", ExerciseID: "ex-1", AttemptNumber: 2})
+	_ = ms.SaveScore(&model.Score{UserID: "user-1", ExerciseID: "ex-2", AttemptNumber: 1})
+	_ = ms.SaveScore(&model.Score{UserID: "user-2", ExerciseID: "ex-3", AttemptNumber: 1})
+
+	ids, err := ms.GetCompletedExerciseIDs("user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(ids) != 2 {
+		t.Errorf("expected 2 exercise IDs, got %d", len(ids))
+	}
+	if !ids["ex-1"] {
+		t.Error("expected ex-1 to be in completed set")
+	}
+	if !ids["ex-2"] {
+		t.Error("expected ex-2 to be in completed set")
+	}
+	if ids["ex-3"] {
+		t.Error("expected ex-3 to NOT be in completed set for user-1")
+	}
+}
+
+func TestMemoryStore_GetScoreDates(t *testing.T) {
+	ms := NewMemoryStore()
+
+	_ = ms.SaveScore(&model.Score{UserID: "user-1", ExerciseID: "ex-1", AttemptNumber: 1})
+	_ = ms.SaveScore(&model.Score{UserID: "user-1", ExerciseID: "ex-2", AttemptNumber: 1})
+
+	dates, err := ms.GetScoreDates("user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Both scores created in same test run = same date
+	if len(dates) != 1 {
+		t.Errorf("expected 1 unique date, got %d", len(dates))
+	}
+
+	// Empty for unknown user
+	dates, err = ms.GetScoreDates("unknown")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(dates) != 0 {
+		t.Errorf("expected 0 dates for unknown user, got %d", len(dates))
+	}
+}
+
 func TestGenerateID(t *testing.T) {
 	tests := []struct {
 		input int
