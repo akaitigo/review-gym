@@ -171,6 +171,85 @@ func TestMemoryStore_ListByExercise_ReferenceReviews(t *testing.T) {
 	}
 }
 
+func TestMemoryStore_SaveAndGetScores(t *testing.T) {
+	ms := NewMemoryStore()
+
+	score := &model.Score{
+		UserID:         "user-1",
+		ExerciseID:     "00000001",
+		PrecisionScore: 75.0,
+		RecallScore:    50.0,
+		OverallScore:   60.0,
+		AttemptNumber:  1,
+	}
+
+	if err := ms.SaveScore(score); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if score.ID == "" {
+		t.Error("expected ID to be set")
+	}
+
+	scores, err := ms.GetScoresByExerciseAndUser("00000001", "user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(scores) != 1 {
+		t.Fatalf("expected 1 score, got %d", len(scores))
+	}
+	if scores[0].PrecisionScore != 75 {
+		t.Errorf("precision = %.1f, want 75", scores[0].PrecisionScore)
+	}
+}
+
+func TestMemoryStore_GetScoresByUser(t *testing.T) {
+	ms := NewMemoryStore()
+
+	score1 := &model.Score{
+		UserID:        "user-1",
+		ExerciseID:    "00000001",
+		AttemptNumber: 1,
+	}
+	score2 := &model.Score{
+		UserID:        "user-1",
+		ExerciseID:    "00000002",
+		AttemptNumber: 1,
+	}
+	score3 := &model.Score{
+		UserID:        "user-2",
+		ExerciseID:    "00000001",
+		AttemptNumber: 1,
+	}
+
+	_ = ms.SaveScore(score1)
+	_ = ms.SaveScore(score2)
+	_ = ms.SaveScore(score3)
+
+	scores, err := ms.GetScoresByUser("user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(scores) != 2 {
+		t.Errorf("expected 2 scores, got %d", len(scores))
+	}
+}
+
+func TestMemoryStore_CountCompletedExercises(t *testing.T) {
+	ms := NewMemoryStore()
+
+	_ = ms.SaveScore(&model.Score{UserID: "user-1", ExerciseID: "ex-1", AttemptNumber: 1})
+	_ = ms.SaveScore(&model.Score{UserID: "user-1", ExerciseID: "ex-1", AttemptNumber: 2})
+	_ = ms.SaveScore(&model.Score{UserID: "user-1", ExerciseID: "ex-2", AttemptNumber: 1})
+
+	count, err := ms.CountCompletedExercises("user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2 completed exercises, got %d", count)
+	}
+}
+
 func TestGenerateID(t *testing.T) {
 	tests := []struct {
 		input int

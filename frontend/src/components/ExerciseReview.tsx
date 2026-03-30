@@ -1,10 +1,11 @@
 import { useExercise } from "@/hooks/useExercise";
-import { createReview, listReviews } from "@/lib/api";
-import type { Category, ReviewComment } from "@/types/exercise";
+import { createReview, listReviews, scoreExercise } from "@/lib/api";
+import type { Category, ReviewComment, ScoreResult as ScoreResultType } from "@/types/exercise";
 import { CATEGORY_LABELS, DIFFICULTY_LABELS } from "@/types/exercise";
 import { useCallback, useEffect, useState } from "react";
 import { CommentForm } from "./CommentForm";
 import { DiffViewer } from "./DiffViewer";
+import { ScoreResult } from "./ScoreResult";
 
 interface ExerciseReviewProps {
 	exerciseId: string;
@@ -18,6 +19,9 @@ export function ExerciseReview({ exerciseId, onBack, onComplete }: ExerciseRevie
 	const [activeComment, setActiveComment] = useState<{ filePath: string; lineNumber: number } | null>(null);
 	const [submitting, setSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
+	const [scoring, setScoring] = useState(false);
+	const [scoreResult, setScoreResult] = useState<ScoreResultType | null>(null);
+	const [scoreError, setScoreError] = useState<string | null>(null);
 
 	useEffect(() => {
 		listReviews(exerciseId)
@@ -73,6 +77,27 @@ export function ExerciseReview({ exerciseId, onBack, onComplete }: ExerciseRevie
 		setSubmitError(null);
 	}, []);
 
+	const handleCompleteReview = useCallback(() => {
+		setScoring(true);
+		setScoreError(null);
+
+		scoreExercise(exerciseId)
+			.then((result) => {
+				setScoreResult(result);
+			})
+			.catch((err: unknown) => {
+				setScoreError(err instanceof Error ? err.message : "Failed to score review");
+			})
+			.finally(() => {
+				setScoring(false);
+			});
+	}, [exerciseId]);
+
+	const handleRetry = useCallback(() => {
+		setScoreResult(null);
+		setScoreError(null);
+	}, []);
+
 	if (loading) {
 		return <p className="loading">Loading exercise...</p>;
 	}
@@ -95,6 +120,27 @@ export function ExerciseReview({ exerciseId, onBack, onComplete }: ExerciseRevie
 				<button type="button" onClick={onBack} className="btn-secondary">
 					Back to exercises
 				</button>
+			</div>
+		);
+	}
+
+	// Show score result if scoring is complete.
+	if (scoreResult !== null) {
+		return (
+			<div className="exercise-review">
+				<div className="exercise-review-header">
+					<div className="exercise-info">
+						<h2>{exercise.title}</h2>
+						<div className="exercise-meta">
+							<span className={`badge difficulty-${exercise.difficulty}`}>
+								{DIFFICULTY_LABELS[exercise.difficulty]}
+							</span>
+							<span className={`badge category-${exercise.category}`}>{CATEGORY_LABELS[exercise.category]}</span>
+							<span className="badge language">{exercise.language}</span>
+						</div>
+					</div>
+				</div>
+				<ScoreResult result={scoreResult} onRetry={handleRetry} onBack={onComplete} />
 			</div>
 		);
 	}
@@ -148,13 +194,14 @@ export function ExerciseReview({ exerciseId, onBack, onComplete }: ExerciseRevie
 				<div className="comment-count">
 					{String(comments.length)} comment{comments.length !== 1 ? "s" : ""} submitted
 				</div>
+				{scoreError !== null && <p className="error score-error">Error: {scoreError}</p>}
 				<button
 					type="button"
 					className="btn-primary btn-complete"
-					onClick={onComplete}
-					disabled={comments.length === 0}
+					onClick={handleCompleteReview}
+					disabled={comments.length === 0 || scoring}
 				>
-					Complete Review
+					{scoring ? "Scoring..." : "Complete Review"}
 				</button>
 			</div>
 		</div>

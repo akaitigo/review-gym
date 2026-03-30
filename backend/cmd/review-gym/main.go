@@ -21,6 +21,7 @@ func main() {
 		Exercises:  ms,
 		Reviews:    ms,
 		References: ms,
+		Scores:     ms,
 	}
 
 	mux := http.NewServeMux()

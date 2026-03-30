@@ -1,4 +1,11 @@
-import type { CreateReviewRequest, Exercise, ExerciseListItem, ReviewComment } from "@/types/exercise";
+import type {
+	CreateReviewRequest,
+	Exercise,
+	ExerciseListItem,
+	ReviewComment,
+	ScoreHistoryEntry,
+	ScoreResult,
+} from "@/types/exercise";
 
 const API_BASE = "/api";
 
@@ -55,4 +62,16 @@ export async function createReview(exerciseId: string, review: CreateReviewReque
 /** Fetch review comments for an exercise (current user). */
 export async function listReviews(exerciseId: string): Promise<ReviewComment[]> {
 	return fetchJSON<ReviewComment[]>(`${API_BASE}/exercises/${encodeURIComponent(exerciseId)}/reviews`);
+}
+
+/** Score the current user's review against reference reviews. */
+export async function scoreExercise(exerciseId: string): Promise<ScoreResult> {
+	return fetchJSON<ScoreResult>(`${API_BASE}/exercises/${encodeURIComponent(exerciseId)}/score`, {
+		method: "POST",
+	});
+}
+
+/** Fetch score history for an exercise (current user). */
+export async function listScores(exerciseId: string): Promise<ScoreHistoryEntry[]> {
+	return fetchJSON<ScoreHistoryEntry[]>(`${API_BASE}/exercises/${encodeURIComponent(exerciseId)}/scores`);
 }

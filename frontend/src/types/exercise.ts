@@ -73,3 +73,95 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 	intermediate: "Intermediate",
 	advanced: "Advanced",
 };
+
+/** Severity levels matching the backend model. */
+export type Severity = "critical" | "major" | "minor" | "info";
+
+/** Category score breakdown. */
+export interface CategoryScore {
+	category: Category;
+	score: number;
+	max_points: number;
+	earned: number;
+}
+
+/** A matched pair of user comment and reference review. */
+export interface ScoringMatch {
+	user_comment: ReviewComment;
+	reference_review: ReferenceReview;
+	line_delta: number;
+}
+
+/** A reference review point. */
+export interface ReferenceReview {
+	id: string;
+	exercise_id: string;
+	file_path: string;
+	line_number: number;
+	content: string;
+	category: Category;
+	severity: Severity;
+	explanation: string;
+}
+
+/** A missed reference review in scoring results. */
+export interface MissedReview {
+	file_path: string;
+	line_number: number;
+	content: string;
+	category: Category;
+	severity: Severity;
+	explanation: string;
+}
+
+/** A false positive user comment in scoring results. */
+export interface FalsePositive {
+	file_path: string;
+	line_number: number;
+	content: string;
+	category: Category;
+}
+
+/** Full scoring result from the API. */
+export interface ScoreResult {
+	id: string;
+	exercise_id: string;
+	user_id: string;
+	precision_score: number;
+	recall_score: number;
+	overall_score: number;
+	category_scores: CategoryScore[];
+	attempt_number: number;
+	matches: ScoringMatch[];
+	missed_reviews: MissedReview[];
+	false_positives: FalsePositive[];
+}
+
+/** Score history entry. */
+export interface ScoreHistoryEntry {
+	id: string;
+	user_id: string;
+	exercise_id: string;
+	precision_score: number;
+	recall_score: number;
+	overall_score: number;
+	category_scores: string;
+	attempt_number: number;
+	created_at: string;
+}
+
+/** Human-readable labels for severity. */
+export const SEVERITY_LABELS: Record<Severity, string> = {
+	critical: "Critical",
+	major: "Major",
+	minor: "Minor",
+	info: "Info",
+};
+
+/** Color mapping for severity levels. */
+export const SEVERITY_COLORS: Record<Severity, string> = {
+	critical: "#e74c3c",
+	major: "#e67e22",
+	minor: "#f1c40f",
+	info: "#3498db",
+};
