@@ -165,3 +165,74 @@ export const SEVERITY_COLORS: Record<Severity, string> = {
 	minor: "#f1c40f",
 	info: "#3498db",
 };
+
+/** Category analytics data from the analytics endpoint. */
+export interface CategoryAnalytics {
+	category: Category;
+	average_score: number;
+	min_score: number;
+	max_score: number;
+	trend: "improving" | "stagnating" | "declining";
+	is_weakness: boolean;
+}
+
+/** Score history point for the trend chart. */
+export interface ScoreHistoryPoint {
+	date: string;
+	overall_score: number;
+	attempt_index: number;
+}
+
+/** Analytics response from GET /api/users/:id/analytics. */
+export interface AnalyticsData {
+	user_id: string;
+	total_exercises_completed: number;
+	total_attempts: number;
+	overall_average_score: number;
+	categories: CategoryAnalytics[];
+	weakness_categories: Category[];
+	score_history: ScoreHistoryPoint[];
+	consecutive_days: number;
+	message?: string;
+	min_exercises_required?: number;
+}
+
+/** Recommendation item from the recommendations endpoint. */
+export interface RecommendationItem {
+	exercise: ExerciseListItem;
+	recommended_reason: string;
+	target_weakness: Category;
+	previously_attempted: boolean;
+}
+
+/** Recommendations response from GET /api/users/:id/recommendations. */
+export interface RecommendationsData {
+	user_id: string;
+	weakness_categories: Category[];
+	recommendations: RecommendationItem[];
+	message?: string;
+	min_exercises_required?: number;
+}
+
+/** Color mapping for categories (for charts). */
+export const CATEGORY_COLORS: Record<Category, string> = {
+	security: "#f85149",
+	performance: "#d29922",
+	design: "#58a6ff",
+	readability: "#3fb950",
+	"error-handling": "#bc8cff",
+};
+
+/** Trend labels for display. */
+export const TREND_LABELS: Record<string, string> = {
+	improving: "Improving",
+	stagnating: "Stable",
+	declining: "Declining",
+};
+
+/** Trend icons for display. */
+export const TREND_ICONS: Record<string, string> = {
+	improving: "\u2191",
+	stagnating: "\u2192",
+	declining: "\u2193",
+};

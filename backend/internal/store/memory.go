@@ -213,3 +213,37 @@ func (ms *MemoryStore) CountCompletedExercises(userID string) (int, error) {
 	}
 	return len(seen), nil
 }
+
+// GetCompletedExerciseIDs returns the set of exercise IDs that a user has scored.
+func (ms *MemoryStore) GetCompletedExerciseIDs(userID string) (map[string]bool, error) {
+	ms.mu.RLock()
+	defer ms.mu.RUnlock()
+
+	seen := make(map[string]bool)
+	for _, s := range ms.scores {
+		if s.UserID == userID {
+			seen[s.ExerciseID] = true
+		}
+	}
+	return seen, nil
+}
+
+// GetScoreDates returns unique dates (YYYY-MM-DD) on which a user scored exercises,
+// sorted in ascending order.
+func (ms *MemoryStore) GetScoreDates(userID string) ([]string, error) {
+	ms.mu.RLock()
+	defer ms.mu.RUnlock()
+
+	seen := make(map[string]bool)
+	var dates []string
+	for _, s := range ms.scores {
+		if s.UserID == userID {
+			d := s.CreatedAt.Format("2006-01-02")
+			if !seen[d] {
+				seen[d] = true
+				dates = append(dates, d)
+			}
+		}
+	}
+	return dates, nil
+}

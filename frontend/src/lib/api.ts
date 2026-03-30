@@ -1,7 +1,9 @@
 import type {
+	AnalyticsData,
 	CreateReviewRequest,
 	Exercise,
 	ExerciseListItem,
+	RecommendationsData,
 	ReviewComment,
 	ScoreHistoryEntry,
 	ScoreResult,
@@ -74,4 +76,14 @@ export async function scoreExercise(exerciseId: string): Promise<ScoreResult> {
 /** Fetch score history for an exercise (current user). */
 export async function listScores(exerciseId: string): Promise<ScoreHistoryEntry[]> {
 	return fetchJSON<ScoreHistoryEntry[]>(`${API_BASE}/exercises/${encodeURIComponent(exerciseId)}/scores`);
+}
+
+/** Fetch user analytics (category scores, weaknesses, trends). */
+export async function getUserAnalytics(userId: string): Promise<AnalyticsData> {
+	return fetchJSON<AnalyticsData>(`${API_BASE}/users/${encodeURIComponent(userId)}/analytics`);
+}
+
+/** Fetch recommended exercises based on user weaknesses. */
+export async function getUserRecommendations(userId: string): Promise<RecommendationsData> {
+	return fetchJSON<RecommendationsData>(`${API_BASE}/users/${encodeURIComponent(userId)}/recommendations`);
 }

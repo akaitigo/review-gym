@@ -32,4 +32,6 @@ type ScoreStore interface {
 	GetScoresByExerciseAndUser(exerciseID, userID string) ([]model.Score, error)
 	GetScoresByUser(userID string) ([]model.Score, error)
 	CountCompletedExercises(userID string) (int, error)
+	GetCompletedExerciseIDs(userID string) (map[string]bool, error)
+	GetScoreDates(userID string) ([]string, error)
 }
