@@ -1,4 +1,4 @@
-.PHONY: build test lint format check quality clean
+.PHONY: build test lint format check quality clean migrate migrate-down
 
 build:
 	cd frontend && npm run build
@@ -27,6 +27,12 @@ quality:
 	@test ! -f PRD.md || ! grep -q "\[ \]" PRD.md || { echo "ERROR: unchecked acceptance criteria in PRD.md"; exit 1; }
 	@echo "OK: automated quality checks passed"
 	@echo "Manual checks required: README quickstart, demo GIF, input validation, ADR >=1"
+
+migrate:
+	cd backend && make migrate
+
+migrate-down:
+	cd backend && make migrate-down
 
 clean:
 	cd frontend && rm -rf dist/ coverage/ node_modules/.cache/

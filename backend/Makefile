@@ -1,4 +1,4 @@
-.PHONY: build test lint format check clean tidy
+.PHONY: build test lint format check clean tidy migrate migrate-down
 
 # Go build settings
 GOFLAGS ?= -trimpath
@@ -22,6 +22,12 @@ tidy:
 
 check: format tidy lint test build
 	@echo "All checks passed."
+
+migrate:
+	go run ./cmd/migrate -direction up
+
+migrate-down:
+	go run ./cmd/migrate -direction down
 
 clean:
 	go clean -cache -testcache
