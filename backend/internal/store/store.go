@@ -25,3 +25,11 @@ type ReviewCommentStore interface {
 type ReferenceReviewStore interface {
 	ListByExercise(exerciseID string) ([]model.ReferenceReview, error)
 }
+
+// ScoreStore defines operations on scoring results.
+type ScoreStore interface {
+	SaveScore(score *model.Score) error
+	GetScoresByExerciseAndUser(exerciseID, userID string) ([]model.Score, error)
+	GetScoresByUser(userID string) ([]model.Score, error)
+	CountCompletedExercises(userID string) (int, error)
+}

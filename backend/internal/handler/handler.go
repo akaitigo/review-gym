@@ -13,6 +13,7 @@ type Handler struct {
 	Exercises  store.ExerciseStore
 	Reviews    store.ReviewCommentStore
 	References store.ReferenceReviewStore
+	Scores     store.ScoreStore
 }
 
 // writeJSON writes a JSON response with the given status code.

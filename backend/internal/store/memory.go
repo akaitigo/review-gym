@@ -15,7 +15,9 @@ type MemoryStore struct {
 	exercises        []model.Exercise
 	referenceReviews map[string][]model.ReferenceReview // exerciseID -> reviews
 	reviewComments   []model.ReviewComment
+	scores           []model.Score
 	nextCommentID    int
+	nextScoreID      int
 }
 
 // NewMemoryStore creates a MemoryStore pre-populated with seed data.
@@ -23,6 +25,7 @@ func NewMemoryStore() *MemoryStore {
 	ms := &MemoryStore{
 		referenceReviews: make(map[string][]model.ReferenceReview),
 		nextCommentID:    1,
+		nextScoreID:      1,
 	}
 	ms.loadSeedData()
 	return ms
@@ -153,4 +156,60 @@ func (ms *MemoryStore) ListByExercise(exerciseID string) ([]model.ReferenceRevie
 	result := make([]model.ReferenceReview, len(reviews))
 	copy(result, reviews)
 	return result, nil
+}
+
+// SaveScore persists a scoring result.
+func (ms *MemoryStore) SaveScore(score *model.Score) error {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	score.ID = generateID(ms.nextScoreID)
+	ms.nextScoreID++
+	now := time.Now()
+	score.CreatedAt = now
+	ms.scores = append(ms.scores, *score)
+	return nil
+}
+
+// GetScoresByExerciseAndUser returns all scores for a given exercise and user,
+// ordered by attempt number.
+func (ms *MemoryStore) GetScoresByExerciseAndUser(exerciseID, userID string) ([]model.Score, error) {
+	ms.mu.RLock()
+	defer ms.mu.RUnlock()
+
+	var result []model.Score
+	for _, s := range ms.scores {
+		if s.ExerciseID == exerciseID && s.UserID == userID {
+			result = append(result, s)
+		}
+	}
+	return result, nil
+}
+
+// GetScoresByUser returns all scores for a given user.
+func (ms *MemoryStore) GetScoresByUser(userID string) ([]model.Score, error) {
+	ms.mu.RLock()
+	defer ms.mu.RUnlock()
+
+	var result []model.Score
+	for _, s := range ms.scores {
+		if s.UserID == userID {
+			result = append(result, s)
+		}
+	}
+	return result, nil
+}
+
+// CountCompletedExercises returns the number of distinct exercises scored by a user.
+func (ms *MemoryStore) CountCompletedExercises(userID string) (int, error) {
+	ms.mu.RLock()
+	defer ms.mu.RUnlock()
+
+	seen := make(map[string]bool)
+	for _, s := range ms.scores {
+		if s.UserID == userID {
+			seen[s.ExerciseID] = true
+		}
+	}
+	return len(seen), nil
 }

@@ -526,6 +526,263 @@ h2 {
 	margin-top: 1rem;
 }
 
+/* Score Result */
+.score-result {
+	padding: 1rem 0;
+}
+
+.score-result h2 {
+	text-align: center;
+	margin-bottom: 1.5rem;
+}
+
+.score-overview {
+	display: flex;
+	align-items: center;
+	gap: 2rem;
+	margin-bottom: 1.5rem;
+	padding: 1.5rem;
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: 8px;
+}
+
+.score-overall {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 120px;
+	height: 120px;
+	border: 4px solid;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.score-value {
+	font-size: 2rem;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.score-label {
+	font-size: 0.75rem;
+	color: var(--color-text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin-top: 0.25rem;
+}
+
+.score-breakdown {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.score-metric {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.metric-label {
+	width: 5rem;
+	font-size: 0.85rem;
+	color: var(--color-text-muted);
+}
+
+.metric-value {
+	width: 3.5rem;
+	text-align: right;
+	font-size: 0.85rem;
+	font-weight: 600;
+}
+
+.score-bar-container {
+	flex: 1;
+	height: 8px;
+	background: var(--color-border);
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.score-bar {
+	height: 100%;
+	border-radius: 4px;
+	transition: width 0.5s ease;
+}
+
+.score-attempt {
+	text-align: center;
+	color: var(--color-text-muted);
+	font-size: 0.85rem;
+	margin-bottom: 1.5rem;
+}
+
+.category-scores {
+	margin-bottom: 1.5rem;
+}
+
+.category-scores h3 {
+	font-size: 1.1rem;
+	margin-bottom: 0.75rem;
+}
+
+.category-grid {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.category-score-item {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.5rem 0.75rem;
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: 6px;
+}
+
+.category-name {
+	width: 8rem;
+	font-size: 0.85rem;
+}
+
+.category-value {
+	width: 3rem;
+	text-align: right;
+	font-size: 0.85rem;
+	font-weight: 600;
+}
+
+.score-section {
+	margin-bottom: 1.5rem;
+}
+
+.score-section h3 {
+	font-size: 1.1rem;
+	margin-bottom: 0.75rem;
+}
+
+.finding-list {
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.finding-item {
+	padding: 0.75rem 1rem;
+	background: var(--color-surface);
+	border: 1px solid var(--color-border);
+	border-radius: 6px;
+}
+
+.finding-item.matched {
+	border-left: 3px solid var(--color-success);
+}
+
+.finding-item.missed {
+	border-left: 3px solid var(--color-danger);
+}
+
+.finding-item.false-positive {
+	border-left: 3px solid var(--color-warning);
+}
+
+.finding-header {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.finding-badge {
+	display: inline-block;
+	padding: 0.15em 0.5em;
+	border-radius: 4px;
+	font-size: 0.7rem;
+	font-weight: 600;
+	text-transform: uppercase;
+}
+
+.matched-badge {
+	background: #1a4021;
+	color: var(--color-success);
+}
+
+.severity-badge {
+	color: #fff;
+}
+
+.fp-badge {
+	background: #3d2e00;
+	color: var(--color-warning);
+}
+
+.finding-location {
+	font-family: var(--font-mono);
+	font-size: 0.8rem;
+	color: var(--color-text-muted);
+}
+
+.finding-category {
+	display: inline-block;
+	padding: 0.1em 0.4em;
+	border-radius: 3px;
+	font-size: 0.7rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	background: var(--color-border);
+	color: var(--color-text-muted);
+}
+
+.finding-content {
+	font-size: 0.85rem;
+	color: var(--color-text);
+	line-height: 1.5;
+}
+
+.finding-note {
+	font-size: 0.75rem;
+	color: var(--color-text-muted);
+	margin-top: 0.25rem;
+	font-style: italic;
+}
+
+.finding-explanation {
+	margin-top: 0.5rem;
+}
+
+.finding-explanation summary {
+	cursor: pointer;
+	font-size: 0.8rem;
+	color: var(--color-primary);
+}
+
+.finding-explanation p {
+	margin-top: 0.25rem;
+	font-size: 0.85rem;
+	color: var(--color-text-muted);
+	line-height: 1.5;
+}
+
+.score-actions {
+	display: flex;
+	justify-content: center;
+	gap: 1rem;
+	margin-top: 2rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--color-border);
+}
+
+.score-error {
+	margin-right: 1rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
 	.diff-table {
@@ -542,6 +799,15 @@ h2 {
 	}
 
 	.exercise-review-header {
+		flex-direction: column;
+	}
+
+	.score-overview {
+		flex-direction: column;
+		text-align: center;
+	}
+
+	.score-actions {
 		flex-direction: column;
 	}
 }
