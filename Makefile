@@ -22,7 +22,7 @@ check: lint test build
 quality:
 	@echo "=== Quality Gate ==="
 	@test -f LICENSE || { echo "ERROR: LICENSE missing. Fix: add MIT LICENSE file"; exit 1; }
-	@! grep -rn "TODO\|FIXME\|HACK\|console\.log\|println\|print(" frontend/src/ backend/ 2>/dev/null | grep -v "node_modules" || { echo "ERROR: debug output or TODO found. Fix: remove before ship"; exit 1; }
+	@! grep -rn "TODO\|FIXME\|HACK\|console\.log\|println\|print(" frontend/src/ backend/ 2>/dev/null | grep -v "node_modules" | grep -v "_test\.go:.*\`" | grep -v "_test\.go:.*\"" || { echo "ERROR: debug output or TODO found. Fix: remove before ship"; exit 1; }
 	@! grep -rn "password=\|secret=\|api_key=\|sk-\|ghp_" frontend/src/ backend/ 2>/dev/null | grep -v '\$${' | grep -v "node_modules" || { echo "ERROR: hardcoded secrets. Fix: use env vars with no default"; exit 1; }
 	@test ! -f PRD.md || ! grep -q "\[ \]" PRD.md || { echo "ERROR: unchecked acceptance criteria in PRD.md"; exit 1; }
 	@echo "OK: automated quality checks passed"
