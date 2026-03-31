@@ -18,6 +18,15 @@
 | キャッシュ | Redis |
 | E2Eテスト | Playwright |
 
+## アーキテクチャ
+
+```
+[Browser] → [React SPA (Vite)] → [Go API Server] → [PostgreSQL]
+                                                  → [Redis]
+```
+
+フロントエンドはReact SPAで差分表示とレビューコメントUIを提供し、バックエンドのGo APIがスコアリングエンジンとデータ管理を担当します。
+
 ## セットアップ
 
 ### 前提条件
