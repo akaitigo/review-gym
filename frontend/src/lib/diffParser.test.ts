@@ -49,6 +49,77 @@ describe("parseDiff", () => {
 		expect(lastLine?.newLineNumber).toBe(10);
 	});
 
+	it("should parse multi-file diff into separate DiffFile entries", () => {
+		const diff = `--- a/a.go
++++ b/a.go
+@@ -1 +1 @@
+-a
++b
+--- a/b.go
++++ b/b.go
+@@ -1 +1 @@
+-c
++d`;
+
+		const files = parseDiff(diff);
+		expect(files).toHaveLength(2);
+
+		expect(files[0]?.oldPath).toBe("a.go");
+		expect(files[0]?.newPath).toBe("a.go");
+		expect(files[0]?.hunks).toHaveLength(1);
+		expect(files[0]?.hunks[0]?.lines).toHaveLength(2);
+		expect(files[0]?.hunks[0]?.lines[0]?.type).toBe("deletion");
+		expect(files[0]?.hunks[0]?.lines[0]?.content).toBe("a");
+		expect(files[0]?.hunks[0]?.lines[1]?.type).toBe("addition");
+		expect(files[0]?.hunks[0]?.lines[1]?.content).toBe("b");
+
+		expect(files[1]?.oldPath).toBe("b.go");
+		expect(files[1]?.newPath).toBe("b.go");
+		expect(files[1]?.hunks).toHaveLength(1);
+		expect(files[1]?.hunks[0]?.lines).toHaveLength(2);
+		expect(files[1]?.hunks[0]?.lines[0]?.type).toBe("deletion");
+		expect(files[1]?.hunks[0]?.lines[0]?.content).toBe("c");
+		expect(files[1]?.hunks[0]?.lines[1]?.type).toBe("addition");
+		expect(files[1]?.hunks[0]?.lines[1]?.content).toBe("d");
+	});
+
+	it("should parse three-file diff with multiple hunks", () => {
+		const diff = `--- a/foo.ts
++++ b/foo.ts
+@@ -1,2 +1,2 @@
+ const x = 1;
+-const y = 2;
++const y = 3;
+--- a/bar.ts
++++ b/bar.ts
+@@ -1,1 +1,2 @@
+ export {};
++export const a = 1;
+@@ -10,1 +11,1 @@
+-old
++new
+--- a/baz.ts
++++ b/baz.ts
+@@ -1,1 +1,1 @@
+-removed
++added`;
+
+		const files = parseDiff(diff);
+		expect(files).toHaveLength(3);
+
+		expect(files[0]?.newPath).toBe("foo.ts");
+		expect(files[0]?.hunks).toHaveLength(1);
+
+		expect(files[1]?.newPath).toBe("bar.ts");
+		expect(files[1]?.hunks).toHaveLength(2);
+		expect(files[1]?.hunks[0]?.lines.filter((l) => l.type === "addition")).toHaveLength(1);
+		expect(files[1]?.hunks[1]?.lines.filter((l) => l.type === "addition")).toHaveLength(1);
+		expect(files[1]?.hunks[1]?.lines.filter((l) => l.type === "deletion")).toHaveLength(1);
+
+		expect(files[2]?.newPath).toBe("baz.ts");
+		expect(files[2]?.hunks).toHaveLength(1);
+	});
+
 	it("should handle empty diff", () => {
 		const files = parseDiff("");
 		expect(files).toHaveLength(0);
@@ -117,5 +188,20 @@ describe("getMaxNewLineNumber", () => {
 +func util() {}`;
 
 		expect(getMaxNewLineNumber(diff)).toBe(13);
+	});
+
+	it("should return max across multiple files", () => {
+		const diff = `--- a/small.go
++++ b/small.go
+@@ -1 +1 @@
+-x
++y
+--- a/big.go
++++ b/big.go
+@@ -50,1 +50,2 @@
+ existing
++added`;
+
+		expect(getMaxNewLineNumber(diff)).toBe(51);
 	});
 });
