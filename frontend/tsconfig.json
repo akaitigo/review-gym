@@ -1,5 +1,6 @@
 {
 	"compilerOptions": {
+		"ignoreDeprecations": "6.0",
 		/* 型チェック — 厳格 */
 		"strict": true,
 		"noUncheckedIndexedAccess": true,

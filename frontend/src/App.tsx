@@ -1,6 +1,6 @@
+import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { ExerciseList } from "@/components/ExerciseList";
 import { ExerciseReview } from "@/components/ExerciseReview";
-import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 
 function ExerciseListPage() {
 	const navigate = useNavigate();

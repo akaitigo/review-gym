@@ -1,6 +1,6 @@
+import { useCallback, useEffect, useState } from "react";
 import { getExercise } from "@/lib/api";
 import type { Exercise } from "@/types/exercise";
-import { useCallback, useEffect, useState } from "react";
 
 interface UseExerciseResult {
 	exercise: Exercise | null;

@@ -1,6 +1,6 @@
+import { useCallback, useEffect, useState } from "react";
 import { listExercises } from "@/lib/api";
 import type { Category, Difficulty, ExerciseListItem } from "@/types/exercise";
-import { useCallback, useEffect, useState } from "react";
 
 interface UseExercisesResult {
 	exercises: ExerciseListItem[];

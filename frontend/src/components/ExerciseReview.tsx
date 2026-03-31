@@ -1,8 +1,8 @@
+import { useCallback, useEffect, useState } from "react";
 import { useExercise } from "@/hooks/useExercise";
 import { createReview, listReviews, scoreExercise } from "@/lib/api";
 import type { Category, ReviewComment, ScoreResult as ScoreResultType } from "@/types/exercise";
 import { CATEGORY_LABELS, DIFFICULTY_LABELS } from "@/types/exercise";
-import { useCallback, useEffect, useState } from "react";
 import { CommentForm } from "./CommentForm";
 import { DiffViewer } from "./DiffViewer";
 import { ScoreResult } from "./ScoreResult";
