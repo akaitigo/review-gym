@@ -44,7 +44,16 @@ function ensureCurrentFile(state: ParseState): DiffFile {
 	return state.currentFile;
 }
 
+function finalizeCurrentFile(state: ParseState): void {
+	if (state.currentFile !== null) {
+		state.files.push(state.currentFile);
+		state.currentFile = null;
+		state.currentHunk = null;
+	}
+}
+
 function handleOldFileHeader(state: ParseState, line: string): void {
+	finalizeCurrentFile(state);
 	const path = line.slice(4).replace(/^a\//, "");
 	const file = ensureCurrentFile(state);
 	file.oldPath = path;
@@ -129,9 +138,7 @@ export function parseDiff(diffContent: string): DiffFile[] {
 		}
 	}
 
-	if (state.currentFile !== null) {
-		state.files.push(state.currentFile);
-	}
+	finalizeCurrentFile(state);
 
 	return state.files;
 }
