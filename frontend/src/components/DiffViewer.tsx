@@ -1,6 +1,6 @@
+import { useMemo } from "react";
 import { type DiffFile, type DiffLine, parseDiff } from "@/lib/diffParser";
 import type { Category, ReviewComment } from "@/types/exercise";
-import { useMemo } from "react";
 
 interface DiffViewerProps {
 	diffContent: string;

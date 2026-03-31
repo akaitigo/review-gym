@@ -1,5 +1,5 @@
-import { ALL_CATEGORIES, CATEGORY_LABELS, type Category } from "@/types/exercise";
 import { type FormEvent, useState } from "react";
+import { ALL_CATEGORIES, CATEGORY_LABELS, type Category } from "@/types/exercise";
 
 interface CommentFormProps {
 	filePath: string;

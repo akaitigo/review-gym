@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { CategoryScore, FalsePositive, MissedReview, ScoreResult, ScoringMatch } from "./exercise";
 import {
 	ALL_CATEGORIES,
 	ALL_DIFFICULTIES,
@@ -7,7 +8,6 @@ import {
 	SEVERITY_COLORS,
 	SEVERITY_LABELS,
 } from "./exercise";
-import type { CategoryScore, FalsePositive, MissedReview, ScoreResult, ScoringMatch } from "./exercise";
 
 describe("exercise types", () => {
 	it("ALL_CATEGORIES should have 5 categories", () => {

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useExercises } from "@/hooks/useExercises";
 import {
 	ALL_CATEGORIES,
@@ -7,7 +8,6 @@ import {
 	DIFFICULTY_LABELS,
 	type Difficulty,
 } from "@/types/exercise";
-import { useState } from "react";
 
 interface ExerciseListProps {
 	onSelect: (id: string) => void;
