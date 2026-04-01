@@ -137,19 +137,6 @@ export interface ScoreResult {
 	false_positives: FalsePositive[];
 }
 
-/** Score history entry. */
-export interface ScoreHistoryEntry {
-	id: string;
-	user_id: string;
-	exercise_id: string;
-	precision_score: number;
-	recall_score: number;
-	overall_score: number;
-	category_scores: string;
-	attempt_number: number;
-	created_at: string;
-}
-
 /** Human-readable labels for severity. */
 export const SEVERITY_LABELS: Record<Severity, string> = {
 	critical: "Critical",

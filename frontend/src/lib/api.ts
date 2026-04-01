@@ -1,11 +1,4 @@
-import type {
-	CreateReviewRequest,
-	Exercise,
-	ExerciseListItem,
-	ReviewComment,
-	ScoreHistoryEntry,
-	ScoreResult,
-} from "@/types/exercise";
+import type { CreateReviewRequest, Exercise, ExerciseListItem, ReviewComment, ScoreResult } from "@/types/exercise";
 
 const API_BASE = "/api";
 
@@ -69,9 +62,4 @@ export async function scoreExercise(exerciseId: string): Promise<ScoreResult> {
 	return fetchJSON<ScoreResult>(`${API_BASE}/exercises/${encodeURIComponent(exerciseId)}/score`, {
 		method: "POST",
 	});
-}
-
-/** Fetch score history for an exercise (current user). */
-export async function listScores(exerciseId: string): Promise<ScoreHistoryEntry[]> {
-	return fetchJSON<ScoreHistoryEntry[]>(`${API_BASE}/exercises/${encodeURIComponent(exerciseId)}/scores`);
 }

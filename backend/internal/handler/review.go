@@ -28,6 +28,8 @@ type createReviewResponse struct {
 
 // CreateReview handles POST /api/exercises/{id}/reviews.
 func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
 	exerciseID := r.PathValue("id")
 	if exerciseID == "" {
 		writeError(w, http.StatusBadRequest, "missing exercise id")
