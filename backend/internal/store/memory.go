@@ -159,9 +159,20 @@ func (ms *MemoryStore) ListByExercise(exerciseID string) ([]model.ReferenceRevie
 }
 
 // SaveScore persists a scoring result.
+// It atomically computes the attempt number under the write lock to prevent
+// race conditions where concurrent requests could get the same attempt number.
 func (ms *MemoryStore) SaveScore(score *model.Score) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
+
+	// Recompute attempt number under lock to prevent concurrent duplicates.
+	count := 0
+	for _, s := range ms.scores {
+		if s.ExerciseID == score.ExerciseID && s.UserID == score.UserID {
+			count++
+		}
+	}
+	score.AttemptNumber = count + 1
 
 	score.ID = generateID(ms.nextScoreID)
 	ms.nextScoreID++
