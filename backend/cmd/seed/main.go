@@ -95,7 +95,7 @@ func insertReferenceReview(db *sql.DB, exerciseID string, r *model.ReferenceRevi
 	_, err := db.Exec(`
 		INSERT INTO reference_reviews (exercise_id, file_path, line_number, content, category, severity, explanation)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		ON CONFLICT DO NOTHING
+		ON CONFLICT (exercise_id, file_path, line_number, content) DO NOTHING
 	`, exerciseID, r.FilePath, r.LineNumber, r.Content, string(r.Category), string(r.Severity), r.Explanation)
 	if err != nil {
 		return fmt.Errorf("insert reference review: %w", err)
