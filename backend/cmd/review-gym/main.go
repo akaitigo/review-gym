@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/akaitigo/review-gym/internal/handler"
 	"github.com/akaitigo/review-gym/internal/store"
@@ -34,8 +35,16 @@ func main() {
 
 	h.RegisterRoutes(mux)
 
+	srv := &http.Server{
+		Addr:         ":" + port,
+		Handler:      corsMiddleware(mux),
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
 	log.Printf("review-gym API server starting on :%s", port)
-	if err := http.ListenAndServe(":"+port, corsMiddleware(mux)); err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("server failed: %v", err)
 	}
 }

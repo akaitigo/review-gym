@@ -89,7 +89,7 @@ func (h *Handler) GetExercise(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to get exercise")
 		return
 	}
-	if exercise == nil {
+	if exercise == nil || !exercise.IsPublished {
 		writeError(w, http.StatusNotFound, "exercise not found")
 		return
 	}

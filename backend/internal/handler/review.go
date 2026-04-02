@@ -65,6 +65,12 @@ func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
 		userID = "anonymous"
 	}
 
+	// Validate that file_path exists in the exercise's file list.
+	if !isFilePathInExercise(exercise, req.FilePath) {
+		writeError(w, http.StatusBadRequest, "file_path is not part of this exercise's diff")
+		return
+	}
+
 	comment := &model.ReviewComment{
 		ExerciseID: exerciseID,
 		UserID:     userID,
@@ -199,6 +205,17 @@ func splitLines(s string) []string {
 		lines = append(lines, s[start:])
 	}
 	return lines
+}
+
+// isFilePathInExercise checks if the given file path is listed in the exercise's
+// file paths or appears in the diff content's +++ headers.
+func isFilePathInExercise(exercise *model.Exercise, filePath string) bool {
+	for _, fp := range exercise.FilePaths {
+		if fp == filePath {
+			return true
+		}
+	}
+	return false
 }
 
 // parseHunkNewStart extracts the new-file start line from a unified diff hunk header.

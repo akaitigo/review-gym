@@ -67,12 +67,20 @@ func insertExercise(db *sql.DB, ew *seed.ExerciseWithReviews) (string, error) {
 		metadata = json.RawMessage(`{}`)
 	}
 
+	// Use a CTE to insert-or-select: if the title already exists, return
+	// the existing row's ID instead of inserting a duplicate.
 	var id string
 	err = db.QueryRow(`
-		INSERT INTO exercises (title, description, difficulty, category, category_tags, language, diff_content, file_paths, metadata, is_published)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		ON CONFLICT DO NOTHING
-		RETURNING id
+		WITH ins AS (
+			INSERT INTO exercises (title, description, difficulty, category, category_tags, language, diff_content, file_paths, metadata, is_published)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			ON CONFLICT (title) DO NOTHING
+			RETURNING id
+		)
+		SELECT id FROM ins
+		UNION ALL
+		SELECT id FROM exercises WHERE title = $1
+		LIMIT 1
 	`, e.Title, e.Description, string(e.Difficulty), string(e.Category),
 		categoryTags, e.Language, e.DiffContent, filePaths, metadata, e.IsPublished,
 	).Scan(&id)
@@ -87,6 +95,7 @@ func insertReferenceReview(db *sql.DB, exerciseID string, r *model.ReferenceRevi
 	_, err := db.Exec(`
 		INSERT INTO reference_reviews (exercise_id, file_path, line_number, content, category, severity, explanation)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT DO NOTHING
 	`, exerciseID, r.FilePath, r.LineNumber, r.Content, string(r.Category), string(r.Severity), r.Explanation)
 	if err != nil {
 		return fmt.Errorf("insert reference review: %w", err)
