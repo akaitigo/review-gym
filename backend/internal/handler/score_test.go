@@ -118,27 +118,27 @@ func TestScoreExercise_MultipleAttempts(t *testing.T) {
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
-	// Submit a comment with content matching the reference review.
 	reviewBody := map[string]interface{}{
 		"file_path":   "internal/handler/user.go",
 		"line_number": 21,
 		"content":     "SQL injection vulnerability: user input is directly concatenated into the SQL query string.",
 		"category":    "security",
 	}
-	b, _ := json.Marshal(reviewBody)
 
-	createReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/reviews", bytes.NewReader(b))
-	createReq.Header.Set("Content-Type", "application/json")
-	createReq.Header.Set("X-User-ID", "test-user")
-	createRec := httptest.NewRecorder()
-	mux.ServeHTTP(createRec, createReq)
-
-	if createRec.Code != http.StatusCreated {
-		t.Fatalf("failed to create review: status %d", createRec.Code)
-	}
-
-	// Score twice.
+	// Score twice, each time submitting a fresh comment before scoring.
+	// After the fix, only comments from the current attempt are evaluated.
 	for i := 1; i <= 2; i++ {
+		b, _ := json.Marshal(reviewBody)
+		createReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/reviews", bytes.NewReader(b))
+		createReq.Header.Set("Content-Type", "application/json")
+		createReq.Header.Set("X-User-ID", "test-user")
+		createRec := httptest.NewRecorder()
+		mux.ServeHTTP(createRec, createReq)
+
+		if createRec.Code != http.StatusCreated {
+			t.Fatalf("attempt %d: failed to create review: status %d", i, createRec.Code)
+		}
+
 		scoreReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/score", nil)
 		scoreReq.Header.Set("X-User-ID", "test-user")
 		scoreRec := httptest.NewRecorder()
@@ -157,6 +157,45 @@ func TestScoreExercise_MultipleAttempts(t *testing.T) {
 		if attempt != i {
 			t.Errorf("attempt %d: got attempt_number %d", i, attempt)
 		}
+	}
+}
+
+func TestScoreExercise_NoCommentsAfterPreviousScore(t *testing.T) {
+	h := newTestHandler()
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	// Submit a comment and score it.
+	reviewBody := map[string]interface{}{
+		"file_path":   "internal/handler/user.go",
+		"line_number": 21,
+		"content":     "SQL injection vulnerability",
+		"category":    "security",
+	}
+	b, _ := json.Marshal(reviewBody)
+	createReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/reviews", bytes.NewReader(b))
+	createReq.Header.Set("Content-Type", "application/json")
+	createReq.Header.Set("X-User-ID", "test-user")
+	createRec := httptest.NewRecorder()
+	mux.ServeHTTP(createRec, createReq)
+
+	scoreReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/score", nil)
+	scoreReq.Header.Set("X-User-ID", "test-user")
+	scoreRec := httptest.NewRecorder()
+	mux.ServeHTTP(scoreRec, scoreReq)
+
+	if scoreRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on first score, got %d", scoreRec.Code)
+	}
+
+	// Score again without adding new comments — should get 400.
+	scoreReq2 := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/score", nil)
+	scoreReq2.Header.Set("X-User-ID", "test-user")
+	scoreRec2 := httptest.NewRecorder()
+	mux.ServeHTTP(scoreRec2, scoreReq2)
+
+	if scoreRec2.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 when no new comments, got %d", scoreRec2.Code)
 	}
 }
 

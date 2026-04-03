@@ -56,7 +56,7 @@ export default defineConfig({
 
   // dev server の自動起動
   webServer: {
-    command: "npm run dev",
+    command: "cd frontend && npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

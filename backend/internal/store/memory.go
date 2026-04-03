@@ -8,6 +8,14 @@ import (
 	"github.com/akaitigo/review-gym/internal/seed"
 )
 
+const (
+	// maxReviewComments is the maximum number of review comments stored.
+	// When exceeded, the oldest entries are evicted.
+	maxReviewComments = 100_000
+	// maxScores is the maximum number of score records stored.
+	maxScores = 100_000
+)
+
 // MemoryStore is an in-memory implementation of all store interfaces.
 // Suitable for development and testing without a database.
 type MemoryStore struct {
@@ -120,6 +128,7 @@ func (ms *MemoryStore) GetByID(id string) (*model.Exercise, error) {
 }
 
 // Create stores a new review comment.
+// If the store exceeds maxReviewComments, the oldest entries are evicted.
 func (ms *MemoryStore) Create(comment *model.ReviewComment) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
@@ -130,6 +139,12 @@ func (ms *MemoryStore) Create(comment *model.ReviewComment) error {
 	comment.CreatedAt = now
 	comment.UpdatedAt = now
 	ms.reviewComments = append(ms.reviewComments, *comment)
+
+	// Evict oldest entries if over capacity
+	if len(ms.reviewComments) > maxReviewComments {
+		excess := len(ms.reviewComments) - maxReviewComments
+		ms.reviewComments = ms.reviewComments[excess:]
+	}
 	return nil
 }
 
@@ -179,6 +194,12 @@ func (ms *MemoryStore) SaveScore(score *model.Score) error {
 	now := time.Now()
 	score.CreatedAt = now
 	ms.scores = append(ms.scores, *score)
+
+	// Evict oldest entries if over capacity
+	if len(ms.scores) > maxScores {
+		excess := len(ms.scores) - maxScores
+		ms.scores = ms.scores[excess:]
+	}
 	return nil
 }
 

@@ -65,11 +65,35 @@ func (h *Handler) ScoreExercise(w http.ResponseWriter, r *http.Request) {
 		userID = "anonymous"
 	}
 
+	// Determine attempt number (idempotency: check for existing scores).
+	existingScores, err := h.Scores.GetScoresByExerciseAndUser(exerciseID, userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get existing scores")
+		return
+	}
+
+	// Attempt number is one more than the number of existing scores.
+	attemptNumber := len(existingScores) + 1
+
 	// Get user's review comments for this exercise.
-	comments, err := h.Reviews.ListByExerciseAndUser(exerciseID, userID)
+	allComments, err := h.Reviews.ListByExerciseAndUser(exerciseID, userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list review comments")
 		return
+	}
+
+	// Filter to only comments from the current attempt (i.e., after the last score).
+	// This prevents previously scored comments from inflating the current attempt.
+	var comments []model.ReviewComment
+	if len(existingScores) > 0 {
+		lastScoreTime := existingScores[len(existingScores)-1].CreatedAt
+		for _, c := range allComments {
+			if c.CreatedAt.After(lastScoreTime) {
+				comments = append(comments, c)
+			}
+		}
+	} else {
+		comments = allComments
 	}
 
 	if len(comments) == 0 {
@@ -86,16 +110,6 @@ func (h *Handler) ScoreExercise(w http.ResponseWriter, r *http.Request) {
 
 	// Compute the score.
 	result := scoring.Compute(comments, references)
-
-	// Determine attempt number (idempotency: check for existing scores).
-	existingScores, err := h.Scores.GetScoresByExerciseAndUser(exerciseID, userID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get existing scores")
-		return
-	}
-
-	// Attempt number is one more than the number of existing scores.
-	attemptNumber := len(existingScores) + 1
 
 	// Persist the score.
 	score, err := result.ToScore(userID, exerciseID, attemptNumber)
