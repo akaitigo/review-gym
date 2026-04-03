@@ -154,7 +154,7 @@ func (h *Handler) ScoreExercise(w http.ResponseWriter, r *http.Request) {
 		RecallScore:    result.RecallScore,
 		OverallScore:   result.OverallScore,
 		CategoryScores: result.CategoryScores,
-		AttemptNumber:  attemptNumber,
+		AttemptNumber:  score.AttemptNumber,
 		Matches:        result.Matches,
 		MissedReviews:  missed,
 		FalsePositives: fps,
