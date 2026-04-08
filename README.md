@@ -32,7 +32,7 @@
 ### 前提条件
 
 - Node.js >= 22
-- Go >= 1.23
+- Go >= 1.25
 
 > **Note**: デフォルトはインメモリストアで動作します（PostgreSQL・Redis 不要）。永続化が必要な場合は下記「PostgreSQL + Redis で起動」を参照してください。
 
@@ -66,11 +66,14 @@ cp .env.example .env
 # Docker Compose で PostgreSQL + Redis を起動
 docker compose up -d
 
+# バックエンドディレクトリへ移動
+cd backend
+
 # マイグレーション実行
-cd backend && make migrate
+make migrate
 
 # シードデータ投入
-cd backend && make seed
+make seed
 
 # バックエンドを PostgreSQL モードで起動
 STORE_TYPE=postgres \

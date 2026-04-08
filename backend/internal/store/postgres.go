@@ -254,17 +254,9 @@ func (ps *PostgresStore) ListByExercise(exerciseID string) ([]model.ReferenceRev
 }
 
 // SaveScore persists a scoring result.
+// It uses a transaction with FOR UPDATE lock to atomically compute the next
+// attempt number, preventing race conditions from concurrent requests.
 func (ps *PostgresStore) SaveScore(score *model.Score) error {
-	// Compute the attempt number atomically using a subquery.
-	query := `
-		INSERT INTO scores (user_id, exercise_id, precision_score, recall_score,
-		                    overall_score, category_scores, feedback, attempt_number,
-		                    duration_seconds)
-		VALUES ($1, $2, $3, $4, $5, $6, $7,
-		        COALESCE((SELECT MAX(attempt_number) FROM scores WHERE user_id = $1 AND exercise_id = $2), 0) + 1,
-		        $8)
-		RETURNING id, attempt_number, created_at`
-
 	categoryScores := score.CategoryScores
 	if categoryScores == nil {
 		categoryScores = json.RawMessage(`{}`)
@@ -280,12 +272,48 @@ func (ps *PostgresStore) SaveScore(score *model.Score) error {
 		durationSeconds = sql.NullInt32{Int32: int32(score.DurationSeconds), Valid: true}
 	}
 
-	err := ps.db.QueryRow(query,
+	tx, err := ps.db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer func() {
+		if rbErr := tx.Rollback(); rbErr != nil && rbErr != sql.ErrTxDone {
+			// Log rollback error but don't override the primary error.
+			_ = rbErr
+		}
+	}()
+
+	// Lock existing score rows for this user+exercise to prevent concurrent
+	// attempt number collisions. FOR UPDATE ensures serialized access.
+	var maxAttempt int
+	err = tx.QueryRow(`
+		SELECT COALESCE(MAX(attempt_number), 0)
+		FROM scores
+		WHERE user_id = $1 AND exercise_id = $2
+		FOR UPDATE`, score.UserID, score.ExerciseID).Scan(&maxAttempt)
+	if err != nil {
+		return fmt.Errorf("lock and read max attempt: %w", err)
+	}
+
+	nextAttempt := maxAttempt + 1
+
+	insertQuery := `
+		INSERT INTO scores (user_id, exercise_id, precision_score, recall_score,
+		                    overall_score, category_scores, feedback, attempt_number,
+		                    duration_seconds)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, attempt_number, created_at`
+
+	err = tx.QueryRow(insertQuery,
 		score.UserID, score.ExerciseID, score.PrecisionScore, score.RecallScore,
-		score.OverallScore, string(categoryScores), feedback, durationSeconds,
+		score.OverallScore, string(categoryScores), feedback, nextAttempt, durationSeconds,
 	).Scan(&score.ID, &score.AttemptNumber, &score.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("insert score: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
 	}
 
 	return nil

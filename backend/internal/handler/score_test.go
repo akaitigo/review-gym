@@ -25,7 +25,7 @@ func TestScoreExercise(t *testing.T) {
 
 	createReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/reviews", bytes.NewReader(b))
 	createReq.Header.Set("Content-Type", "application/json")
-	createReq.Header.Set("X-User-ID", "test-user")
+	createReq.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	createRec := httptest.NewRecorder()
 	mux.ServeHTTP(createRec, createReq)
 
@@ -35,7 +35,7 @@ func TestScoreExercise(t *testing.T) {
 
 	// Now score the exercise.
 	scoreReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/score", nil)
-	scoreReq.Header.Set("X-User-ID", "test-user")
+	scoreReq.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	scoreRec := httptest.NewRecorder()
 	mux.ServeHTTP(scoreRec, scoreReq)
 
@@ -89,7 +89,7 @@ func TestScoreExercise_NoComments(t *testing.T) {
 	h.RegisterRoutes(mux)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/score", nil)
-	req.Header.Set("X-User-ID", "test-user")
+	req.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
@@ -104,7 +104,7 @@ func TestScoreExercise_ExerciseNotFound(t *testing.T) {
 	h.RegisterRoutes(mux)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/exercises/nonexistent/score", nil)
-	req.Header.Set("X-User-ID", "test-user")
+	req.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
@@ -131,7 +131,7 @@ func TestScoreExercise_MultipleAttempts(t *testing.T) {
 		b, _ := json.Marshal(reviewBody)
 		createReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/reviews", bytes.NewReader(b))
 		createReq.Header.Set("Content-Type", "application/json")
-		createReq.Header.Set("X-User-ID", "test-user")
+		createReq.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 		createRec := httptest.NewRecorder()
 		mux.ServeHTTP(createRec, createReq)
 
@@ -140,7 +140,7 @@ func TestScoreExercise_MultipleAttempts(t *testing.T) {
 		}
 
 		scoreReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/score", nil)
-		scoreReq.Header.Set("X-User-ID", "test-user")
+		scoreReq.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 		scoreRec := httptest.NewRecorder()
 		mux.ServeHTTP(scoreRec, scoreReq)
 
@@ -175,12 +175,12 @@ func TestScoreExercise_NoCommentsAfterPreviousScore(t *testing.T) {
 	b, _ := json.Marshal(reviewBody)
 	createReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/reviews", bytes.NewReader(b))
 	createReq.Header.Set("Content-Type", "application/json")
-	createReq.Header.Set("X-User-ID", "test-user")
+	createReq.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	createRec := httptest.NewRecorder()
 	mux.ServeHTTP(createRec, createReq)
 
 	scoreReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/score", nil)
-	scoreReq.Header.Set("X-User-ID", "test-user")
+	scoreReq.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	scoreRec := httptest.NewRecorder()
 	mux.ServeHTTP(scoreRec, scoreReq)
 
@@ -190,7 +190,7 @@ func TestScoreExercise_NoCommentsAfterPreviousScore(t *testing.T) {
 
 	// Score again without adding new comments — should get 400.
 	scoreReq2 := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/score", nil)
-	scoreReq2.Header.Set("X-User-ID", "test-user")
+	scoreReq2.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	scoreRec2 := httptest.NewRecorder()
 	mux.ServeHTTP(scoreRec2, scoreReq2)
 
@@ -215,18 +215,18 @@ func TestListScores(t *testing.T) {
 
 	createReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/reviews", bytes.NewReader(b))
 	createReq.Header.Set("Content-Type", "application/json")
-	createReq.Header.Set("X-User-ID", "test-user")
+	createReq.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	createRec := httptest.NewRecorder()
 	mux.ServeHTTP(createRec, createReq)
 
 	scoreReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/score", nil)
-	scoreReq.Header.Set("X-User-ID", "test-user")
+	scoreReq.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	scoreRec := httptest.NewRecorder()
 	mux.ServeHTTP(scoreRec, scoreReq)
 
 	// List scores.
 	listReq := httptest.NewRequest(http.MethodGet, "/api/exercises/00000001/scores", nil)
-	listReq.Header.Set("X-User-ID", "test-user")
+	listReq.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	listRec := httptest.NewRecorder()
 	mux.ServeHTTP(listRec, listReq)
 
@@ -249,7 +249,7 @@ func TestListScores_Empty(t *testing.T) {
 	h.RegisterRoutes(mux)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/exercises/00000001/scores", nil)
-	req.Header.Set("X-User-ID", "test-user")
+	req.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 
@@ -263,5 +263,37 @@ func TestListScores_Empty(t *testing.T) {
 	}
 	if len(scores) != 0 {
 		t.Errorf("expected 0 scores, got %d", len(scores))
+	}
+}
+
+func TestScoreExercise_InvalidUserID(t *testing.T) {
+	h := newTestHandler()
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/score", nil)
+	req.Header.Set("X-User-ID", "not-a-uuid")
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400 for invalid UUID, got %d; body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestListScores_InvalidUserID(t *testing.T) {
+	h := newTestHandler()
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/exercises/00000001/scores", nil)
+	req.Header.Set("X-User-ID", "anonymous")
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400 for invalid UUID, got %d", rec.Code)
 	}
 }
