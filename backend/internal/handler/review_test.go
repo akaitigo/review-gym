@@ -23,7 +23,7 @@ func TestCreateReview(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/reviews", bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-User-ID", "test-user")
+	req.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	rec := httptest.NewRecorder()
 
 	mux.ServeHTTP(rec, req)
@@ -156,7 +156,7 @@ func TestListReviews(t *testing.T) {
 
 	createReq := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/reviews", bytes.NewReader(b))
 	createReq.Header.Set("Content-Type", "application/json")
-	createReq.Header.Set("X-User-ID", "test-user")
+	createReq.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	createRec := httptest.NewRecorder()
 	mux.ServeHTTP(createRec, createReq)
 
@@ -166,7 +166,7 @@ func TestListReviews(t *testing.T) {
 
 	// Then list reviews.
 	listReq := httptest.NewRequest(http.MethodGet, "/api/exercises/00000001/reviews", nil)
-	listReq.Header.Set("X-User-ID", "test-user")
+	listReq.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	listRec := httptest.NewRecorder()
 
 	mux.ServeHTTP(listRec, listReq)
@@ -190,7 +190,7 @@ func TestListReviews_Empty(t *testing.T) {
 	h.RegisterRoutes(mux)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/exercises/00000001/reviews", nil)
-	req.Header.Set("X-User-ID", "test-user")
+	req.Header.Set("X-User-ID", "11111111-1111-1111-1111-111111111111")
 	rec := httptest.NewRecorder()
 
 	mux.ServeHTTP(rec, req)
@@ -253,5 +253,79 @@ func TestParseHunkNewStart(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("parseHunkNewStart(%q) = %d, want %d", tt.header, got, tt.want)
 		}
+	}
+}
+
+func TestCreateReview_InvalidUserID(t *testing.T) {
+	h := newTestHandler()
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	body := map[string]interface{}{
+		"file_path":   "internal/handler/user.go",
+		"line_number": 21,
+		"content":     "SQL injection vulnerability",
+		"category":    "security",
+	}
+	b, _ := json.Marshal(body)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/reviews", bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-User-ID", "not-a-uuid")
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400 for invalid UUID, got %d; body: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestCreateReview_DefaultAnonymousUUID(t *testing.T) {
+	h := newTestHandler()
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	body := map[string]interface{}{
+		"file_path":   "internal/handler/user.go",
+		"line_number": 21,
+		"content":     "SQL injection vulnerability detected",
+		"category":    "security",
+	}
+	b, _ := json.Marshal(body)
+
+	// No X-User-ID header => should use default anonymous UUID.
+	req := httptest.NewRequest(http.MethodPost, "/api/exercises/00000001/reviews", bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected status 201 with default anonymous UUID, got %d; body: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp map[string]interface{}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp["user_id"] != "00000000-0000-0000-0000-000000000000" {
+		t.Errorf("expected default anonymous UUID, got %v", resp["user_id"])
+	}
+}
+
+func TestListReviews_InvalidUserID(t *testing.T) {
+	h := newTestHandler()
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/exercises/00000001/reviews", nil)
+	req.Header.Set("X-User-ID", "anonymous")
+	rec := httptest.NewRecorder()
+
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400 for invalid UUID, got %d", rec.Code)
 	}
 }

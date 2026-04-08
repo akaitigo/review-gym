@@ -60,9 +60,10 @@ func (h *Handler) ScoreExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		userID = "anonymous"
+	userID, ok := resolveUserID(r)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "X-User-ID must be a valid UUID")
+		return
 	}
 
 	// Determine attempt number (idempotency: check for existing scores).
@@ -177,9 +178,10 @@ func (h *Handler) ListScores(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		userID = "anonymous"
+	userID, ok := resolveUserID(r)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "X-User-ID must be a valid UUID")
+		return
 	}
 
 	scores, err := h.Scores.GetScoresByExerciseAndUser(exerciseID, userID)

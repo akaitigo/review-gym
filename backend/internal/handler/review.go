@@ -59,10 +59,11 @@ func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Use a placeholder user ID until auth is implemented.
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		userID = "anonymous"
+	// Resolve and validate user ID from header.
+	userID, ok := resolveUserID(r)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "X-User-ID must be a valid UUID")
+		return
 	}
 
 	// Validate that file_path exists in the exercise's file list.
@@ -117,9 +118,10 @@ func (h *Handler) ListReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Header.Get("X-User-ID")
-	if userID == "" {
-		userID = "anonymous"
+	userID, ok := resolveUserID(r)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "X-User-ID must be a valid UUID")
+		return
 	}
 
 	comments, err := h.Reviews.ListByExerciseAndUser(exerciseID, userID)
