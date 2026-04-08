@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -75,7 +76,7 @@ func main() {
 	}()
 
 	log.Printf("review-gym API server starting on :%s", port)
-	if srvErr := srv.ListenAndServe(); srvErr != nil && srvErr != http.ErrServerClosed {
+	if srvErr := srv.ListenAndServe(); srvErr != nil && !errors.Is(srvErr, http.ErrServerClosed) {
 		log.Fatalf("server failed: %v", srvErr)
 	}
 }

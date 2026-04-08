@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -47,12 +48,12 @@ func main() {
 
 	switch *direction {
 	case "up":
-		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 			log.Fatalf("migration up failed: %v", err)
 		}
 		fmt.Println("migrations applied successfully")
 	case "down":
-		if err := m.Down(); err != nil && err != migrate.ErrNoChange {
+		if err := m.Down(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 			log.Fatalf("migration down failed: %v", err)
 		}
 		fmt.Println("migrations rolled back successfully")
