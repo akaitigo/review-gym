@@ -66,15 +66,12 @@ func (h *Handler) ScoreExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine attempt number (idempotency: check for existing scores).
+	// Fetch existing scores to filter comments by attempt boundary.
 	existingScores, err := h.Scores.GetScoresByExerciseAndUser(exerciseID, userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to get existing scores")
 		return
 	}
-
-	// Attempt number is one more than the number of existing scores.
-	attemptNumber := len(existingScores) + 1
 
 	// Get user's review comments for this exercise.
 	allComments, err := h.Reviews.ListByExerciseAndUser(exerciseID, userID)
@@ -112,8 +109,9 @@ func (h *Handler) ScoreExercise(w http.ResponseWriter, r *http.Request) {
 	// Compute the score.
 	result := scoring.Compute(comments, references)
 
-	// Persist the score.
-	score, err := result.ToScore(userID, exerciseID, attemptNumber)
+	// Persist the score. Pass 0 as attemptNumber — the store layer
+	// atomically computes the correct attempt number.
+	score, err := result.ToScore(userID, exerciseID, 0)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to create score record")
 		return
