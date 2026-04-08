@@ -5,7 +5,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -53,7 +55,7 @@ func (ps *PostgresStore) DB() *sql.DB {
 }
 
 // List returns exercises matching the given filter.
-func (ps *PostgresStore) List(filter ExerciseFilter) ([]model.Exercise, error) {
+func (ps *PostgresStore) List(ctx context.Context, filter ExerciseFilter) ([]model.Exercise, error) {
 	query := `
 		SELECT id, title, description, difficulty, category, category_tags,
 		       language, diff_content, file_paths, metadata, is_published,
@@ -82,14 +84,13 @@ func (ps *PostgresStore) List(filter ExerciseFilter) ([]model.Exercise, error) {
 
 	query += ` ORDER BY created_at ASC`
 
-	rows, err := ps.db.Query(query, args...)
+	rows, err := ps.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query exercises: %w", err)
 	}
 	defer func() {
 		if closeErr := rows.Close(); closeErr != nil {
-			// Log but don't override the primary error
-			_ = closeErr
+			log.Printf("rows.Close error: %v", closeErr)
 		}
 	}()
 
@@ -125,7 +126,7 @@ func (ps *PostgresStore) List(filter ExerciseFilter) ([]model.Exercise, error) {
 }
 
 // GetByID returns a single exercise by ID.
-func (ps *PostgresStore) GetByID(id string) (*model.Exercise, error) {
+func (ps *PostgresStore) GetByID(ctx context.Context, id string) (*model.Exercise, error) {
 	query := `
 		SELECT id, title, description, difficulty, category, category_tags,
 		       language, diff_content, file_paths, metadata, is_published,
@@ -136,12 +137,12 @@ func (ps *PostgresStore) GetByID(id string) (*model.Exercise, error) {
 	var ex model.Exercise
 	var categoryTagsJSON, filePathsJSON, metadataJSON []byte
 
-	err := ps.db.QueryRow(query, id).Scan(
+	err := ps.db.QueryRowContext(ctx, query, id).Scan(
 		&ex.ID, &ex.Title, &ex.Description, &ex.Difficulty, &ex.Category,
 		&categoryTagsJSON, &ex.Language, &ex.DiffContent, &filePathsJSON,
 		&metadataJSON, &ex.IsPublished, &ex.CreatedAt, &ex.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -160,13 +161,13 @@ func (ps *PostgresStore) GetByID(id string) (*model.Exercise, error) {
 }
 
 // Create stores a new review comment.
-func (ps *PostgresStore) Create(comment *model.ReviewComment) error {
+func (ps *PostgresStore) Create(ctx context.Context, comment *model.ReviewComment) error {
 	query := `
 		INSERT INTO review_comments (exercise_id, user_id, file_path, line_number, content, category)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at, updated_at`
 
-	err := ps.db.QueryRow(query,
+	err := ps.db.QueryRowContext(ctx, query,
 		comment.ExerciseID, comment.UserID, comment.FilePath,
 		comment.LineNumber, comment.Content, string(comment.Category),
 	).Scan(&comment.ID, &comment.CreatedAt, &comment.UpdatedAt)
@@ -178,7 +179,7 @@ func (ps *PostgresStore) Create(comment *model.ReviewComment) error {
 }
 
 // ListByExerciseAndUser returns comments for a given exercise and user.
-func (ps *PostgresStore) ListByExerciseAndUser(exerciseID, userID string) ([]model.ReviewComment, error) {
+func (ps *PostgresStore) ListByExerciseAndUser(ctx context.Context, exerciseID, userID string) ([]model.ReviewComment, error) {
 	query := `
 		SELECT id, exercise_id, user_id, file_path, line_number, content, category,
 		       created_at, updated_at
@@ -186,13 +187,13 @@ func (ps *PostgresStore) ListByExerciseAndUser(exerciseID, userID string) ([]mod
 		WHERE exercise_id = $1 AND user_id = $2
 		ORDER BY created_at ASC`
 
-	rows, err := ps.db.Query(query, exerciseID, userID)
+	rows, err := ps.db.QueryContext(ctx, query, exerciseID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("query review comments: %w", err)
 	}
 	defer func() {
 		if closeErr := rows.Close(); closeErr != nil {
-			_ = closeErr
+			log.Printf("rows.Close error: %v", closeErr)
 		}
 	}()
 
@@ -216,7 +217,7 @@ func (ps *PostgresStore) ListByExerciseAndUser(exerciseID, userID string) ([]mod
 }
 
 // ListByExercise returns all reference reviews for an exercise.
-func (ps *PostgresStore) ListByExercise(exerciseID string) ([]model.ReferenceReview, error) {
+func (ps *PostgresStore) ListByExercise(ctx context.Context, exerciseID string) ([]model.ReferenceReview, error) {
 	query := `
 		SELECT id, exercise_id, file_path, line_number, content, category,
 		       severity, explanation, created_at
@@ -224,13 +225,13 @@ func (ps *PostgresStore) ListByExercise(exerciseID string) ([]model.ReferenceRev
 		WHERE exercise_id = $1
 		ORDER BY created_at ASC`
 
-	rows, err := ps.db.Query(query, exerciseID)
+	rows, err := ps.db.QueryContext(ctx, query, exerciseID)
 	if err != nil {
 		return nil, fmt.Errorf("query reference reviews: %w", err)
 	}
 	defer func() {
 		if closeErr := rows.Close(); closeErr != nil {
-			_ = closeErr
+			log.Printf("rows.Close error: %v", closeErr)
 		}
 	}()
 
@@ -256,7 +257,7 @@ func (ps *PostgresStore) ListByExercise(exerciseID string) ([]model.ReferenceRev
 // SaveScore persists a scoring result.
 // It uses a transaction with FOR UPDATE lock to atomically compute the next
 // attempt number, preventing race conditions from concurrent requests.
-func (ps *PostgresStore) SaveScore(score *model.Score) error {
+func (ps *PostgresStore) SaveScore(ctx context.Context, score *model.Score) error {
 	categoryScores := score.CategoryScores
 	if categoryScores == nil {
 		categoryScores = json.RawMessage(`{}`)
@@ -272,14 +273,13 @@ func (ps *PostgresStore) SaveScore(score *model.Score) error {
 		durationSeconds = sql.NullInt32{Int32: int32(score.DurationSeconds), Valid: true}
 	}
 
-	tx, err := ps.db.Begin()
+	tx, err := ps.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}
 	defer func() {
-		if rbErr := tx.Rollback(); rbErr != nil && rbErr != sql.ErrTxDone {
-			// Log rollback error but don't override the primary error.
-			_ = rbErr
+		if rbErr := tx.Rollback(); rbErr != nil && !errors.Is(rbErr, sql.ErrTxDone) {
+			log.Printf("tx.Rollback error: %v", rbErr)
 		}
 	}()
 
@@ -321,7 +321,7 @@ func (ps *PostgresStore) SaveScore(score *model.Score) error {
 
 // GetScoresByExerciseAndUser returns all scores for a given exercise and user,
 // ordered by attempt number.
-func (ps *PostgresStore) GetScoresByExerciseAndUser(exerciseID, userID string) ([]model.Score, error) {
+func (ps *PostgresStore) GetScoresByExerciseAndUser(ctx context.Context, exerciseID, userID string) ([]model.Score, error) {
 	query := `
 		SELECT id, user_id, exercise_id, precision_score, recall_score,
 		       overall_score, category_scores, COALESCE(feedback, ''),
@@ -330,13 +330,13 @@ func (ps *PostgresStore) GetScoresByExerciseAndUser(exerciseID, userID string) (
 		WHERE exercise_id = $1 AND user_id = $2
 		ORDER BY attempt_number ASC`
 
-	rows, err := ps.db.Query(query, exerciseID, userID)
+	rows, err := ps.db.QueryContext(ctx, query, exerciseID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("query scores by exercise and user: %w", err)
 	}
 	defer func() {
 		if closeErr := rows.Close(); closeErr != nil {
-			_ = closeErr
+			log.Printf("rows.Close error: %v", closeErr)
 		}
 	}()
 
@@ -363,7 +363,7 @@ func (ps *PostgresStore) GetScoresByExerciseAndUser(exerciseID, userID string) (
 }
 
 // GetScoresByUser returns all scores for a given user.
-func (ps *PostgresStore) GetScoresByUser(userID string) ([]model.Score, error) {
+func (ps *PostgresStore) GetScoresByUser(ctx context.Context, userID string) ([]model.Score, error) {
 	query := `
 		SELECT id, user_id, exercise_id, precision_score, recall_score,
 		       overall_score, category_scores, COALESCE(feedback, ''),
@@ -372,13 +372,13 @@ func (ps *PostgresStore) GetScoresByUser(userID string) ([]model.Score, error) {
 		WHERE user_id = $1
 		ORDER BY created_at ASC`
 
-	rows, err := ps.db.Query(query, userID)
+	rows, err := ps.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("query scores by user: %w", err)
 	}
 	defer func() {
 		if closeErr := rows.Close(); closeErr != nil {
-			_ = closeErr
+			log.Printf("rows.Close error: %v", closeErr)
 		}
 	}()
 
@@ -405,11 +405,11 @@ func (ps *PostgresStore) GetScoresByUser(userID string) ([]model.Score, error) {
 }
 
 // CountCompletedExercises returns the number of distinct exercises scored by a user.
-func (ps *PostgresStore) CountCompletedExercises(userID string) (int, error) {
+func (ps *PostgresStore) CountCompletedExercises(ctx context.Context, userID string) (int, error) {
 	query := `SELECT COUNT(DISTINCT exercise_id) FROM scores WHERE user_id = $1`
 
 	var count int
-	if err := ps.db.QueryRow(query, userID).Scan(&count); err != nil {
+	if err := ps.db.QueryRowContext(ctx, query, userID).Scan(&count); err != nil {
 		return 0, fmt.Errorf("count completed exercises: %w", err)
 	}
 

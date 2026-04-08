@@ -49,8 +49,10 @@ func (h *Handler) ScoreExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := r.Context()
+
 	// Verify exercise exists.
-	exercise, err := h.Exercises.GetByID(exerciseID)
+	exercise, err := h.Exercises.GetByID(ctx, exerciseID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to get exercise")
 		return
@@ -67,14 +69,14 @@ func (h *Handler) ScoreExercise(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch existing scores to filter comments by attempt boundary.
-	existingScores, err := h.Scores.GetScoresByExerciseAndUser(exerciseID, userID)
+	existingScores, err := h.Scores.GetScoresByExerciseAndUser(ctx, exerciseID, userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to get existing scores")
 		return
 	}
 
 	// Get user's review comments for this exercise.
-	allComments, err := h.Reviews.ListByExerciseAndUser(exerciseID, userID)
+	allComments, err := h.Reviews.ListByExerciseAndUser(ctx, exerciseID, userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list review comments")
 		return
@@ -100,7 +102,7 @@ func (h *Handler) ScoreExercise(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get reference reviews for this exercise.
-	references, err := h.References.ListByExercise(exerciseID)
+	references, err := h.References.ListByExercise(ctx, exerciseID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list reference reviews")
 		return
@@ -117,7 +119,7 @@ func (h *Handler) ScoreExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Scores.SaveScore(score); err != nil {
+	if err := h.Scores.SaveScore(ctx, score); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to save score")
 		return
 	}
@@ -182,7 +184,7 @@ func (h *Handler) ListScores(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	scores, err := h.Scores.GetScoresByExerciseAndUser(exerciseID, userID)
+	scores, err := h.Scores.GetScoresByExerciseAndUser(r.Context(), exerciseID, userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list scores")
 		return

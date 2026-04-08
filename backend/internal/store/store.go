@@ -1,7 +1,11 @@
 // Package store provides data access abstractions for the review-gym application.
 package store
 
-import "github.com/akaitigo/review-gym/internal/model"
+import (
+	"context"
+
+	"github.com/akaitigo/review-gym/internal/model"
+)
 
 // ExerciseFilter holds optional filter criteria for listing exercises.
 type ExerciseFilter struct {
@@ -11,25 +15,25 @@ type ExerciseFilter struct {
 
 // ExerciseStore defines operations on exercises.
 type ExerciseStore interface {
-	List(filter ExerciseFilter) ([]model.Exercise, error)
-	GetByID(id string) (*model.Exercise, error)
+	List(ctx context.Context, filter ExerciseFilter) ([]model.Exercise, error)
+	GetByID(ctx context.Context, id string) (*model.Exercise, error)
 }
 
 // ReviewCommentStore defines operations on review comments.
 type ReviewCommentStore interface {
-	Create(comment *model.ReviewComment) error
-	ListByExerciseAndUser(exerciseID, userID string) ([]model.ReviewComment, error)
+	Create(ctx context.Context, comment *model.ReviewComment) error
+	ListByExerciseAndUser(ctx context.Context, exerciseID, userID string) ([]model.ReviewComment, error)
 }
 
 // ReferenceReviewStore defines operations on reference reviews.
 type ReferenceReviewStore interface {
-	ListByExercise(exerciseID string) ([]model.ReferenceReview, error)
+	ListByExercise(ctx context.Context, exerciseID string) ([]model.ReferenceReview, error)
 }
 
 // ScoreStore defines operations on scoring results.
 type ScoreStore interface {
-	SaveScore(score *model.Score) error
-	GetScoresByExerciseAndUser(exerciseID, userID string) ([]model.Score, error)
-	GetScoresByUser(userID string) ([]model.Score, error)
-	CountCompletedExercises(userID string) (int, error)
+	SaveScore(ctx context.Context, score *model.Score) error
+	GetScoresByExerciseAndUser(ctx context.Context, exerciseID, userID string) ([]model.Score, error)
+	GetScoresByUser(ctx context.Context, userID string) ([]model.Score, error)
+	CountCompletedExercises(ctx context.Context, userID string) (int, error)
 }

@@ -36,8 +36,10 @@ func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := r.Context()
+
 	// Verify exercise exists.
-	exercise, err := h.Exercises.GetByID(exerciseID)
+	exercise, err := h.Exercises.GetByID(ctx, exerciseID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to get exercise")
 		return
@@ -92,7 +94,7 @@ func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Reviews.Create(comment); err != nil {
+	if err := h.Reviews.Create(ctx, comment); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to save review comment")
 		return
 	}
@@ -124,7 +126,7 @@ func (h *Handler) ListReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comments, err := h.Reviews.ListByExerciseAndUser(exerciseID, userID)
+	comments, err := h.Reviews.ListByExerciseAndUser(r.Context(), exerciseID, userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list reviews")
 		return
