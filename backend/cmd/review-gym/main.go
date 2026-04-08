@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/akaitigo/review-gym/internal/handler"
@@ -18,12 +21,26 @@ func main() {
 		port = "8080"
 	}
 
-	ms := store.NewMemoryStore()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cfg := store.Config{
+		StoreType:   store.StoreType(os.Getenv("STORE_TYPE")),
+		DatabaseURL: os.Getenv("DATABASE_URL"),
+		RedisURL:    os.Getenv("REDIS_URL"),
+	}
+
+	stores, err := store.NewStores(ctx, cfg)
+	if err != nil {
+		log.Fatalf("failed to initialize stores: %v", err)
+	}
+	defer stores.Close()
+
 	h := &handler.Handler{
-		Exercises:  ms,
-		Reviews:    ms,
-		References: ms,
-		Scores:     ms,
+		Exercises:  stores.Exercises,
+		Reviews:    stores.Reviews,
+		References: stores.References,
+		Scores:     stores.Scores,
 	}
 
 	mux := http.NewServeMux()
@@ -43,9 +60,23 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
+	// Graceful shutdown on SIGINT/SIGTERM.
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigCh
+		log.Println("shutting down...")
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+		if shutdownErr := srv.Shutdown(shutdownCtx); shutdownErr != nil {
+			log.Printf("shutdown error: %v", shutdownErr)
+		}
+	}()
+
 	log.Printf("review-gym API server starting on :%s", port)
-	if err := srv.ListenAndServe(); err != nil {
-		log.Fatalf("server failed: %v", err)
+	if srvErr := srv.ListenAndServe(); srvErr != nil && srvErr != http.ErrServerClosed {
+		log.Fatalf("server failed: %v", srvErr)
 	}
 }
 
