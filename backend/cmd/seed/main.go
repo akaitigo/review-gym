@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/akaitigo/review-gym/internal/model"
 	"github.com/akaitigo/review-gym/internal/seed"
@@ -19,11 +19,15 @@ func main() {
 		databaseURL = "postgresql://review_gym:review_gym_dev@localhost:5432/review_gym?sslmode=disable"
 	}
 
-	db, err := sql.Open("postgres", databaseURL)
+	db, err := sql.Open("pgx", databaseURL)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
-	defer func() { _ = db.Close() }()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("db.Close error: %v", err)
+		}
+	}()
 
 	if err := db.Ping(); err != nil {
 		log.Fatalf("failed to ping database: %v", err)
