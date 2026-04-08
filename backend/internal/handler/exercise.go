@@ -44,7 +44,7 @@ func (h *Handler) ListExercises(w http.ResponseWriter, r *http.Request) {
 		filter.Difficulty = &d
 	}
 
-	exercises, err := h.Exercises.List(filter)
+	exercises, err := h.Exercises.List(r.Context(), filter)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list exercises")
 		return
@@ -84,7 +84,7 @@ func (h *Handler) GetExercise(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exercise, err := h.Exercises.GetByID(id)
+	exercise, err := h.Exercises.GetByID(r.Context(), id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to get exercise")
 		return

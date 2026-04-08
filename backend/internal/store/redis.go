@@ -18,6 +18,9 @@ const (
 	exerciseDetailTTL = 10 * time.Minute
 	// referenceReviewTTL is how long cached reference reviews live.
 	referenceReviewTTL = 10 * time.Minute
+
+	// keyPrefix is added to all Redis keys to avoid collisions with other services.
+	keyPrefix = "review-gym:"
 )
 
 // RedisCache wraps a primary store with Redis caching for read-heavy operations.
@@ -64,7 +67,7 @@ func (rc *RedisCache) Close() error {
 
 // exerciseListKey builds the cache key for an exercise list query.
 func exerciseListKey(filter ExerciseFilter) string {
-	key := "exercises:list"
+	key := keyPrefix + "exercises:list"
 	if filter.Category != nil {
 		key += ":cat:" + string(*filter.Category)
 	}
@@ -76,17 +79,16 @@ func exerciseListKey(filter ExerciseFilter) string {
 
 // exerciseDetailKey builds the cache key for a single exercise.
 func exerciseDetailKey(id string) string {
-	return "exercises:detail:" + id
+	return keyPrefix + "exercises:detail:" + id
 }
 
 // referenceReviewKey builds the cache key for reference reviews.
 func referenceReviewKey(exerciseID string) string {
-	return "reference_reviews:" + exerciseID
+	return keyPrefix + "reference_reviews:" + exerciseID
 }
 
 // List returns exercises matching the given filter, using Redis cache.
-func (rc *RedisCache) List(filter ExerciseFilter) ([]model.Exercise, error) {
-	ctx := context.Background()
+func (rc *RedisCache) List(ctx context.Context, filter ExerciseFilter) ([]model.Exercise, error) {
 	cacheKey := exerciseListKey(filter)
 
 	cached, err := rc.rdb.Get(ctx, cacheKey).Bytes()
@@ -98,7 +100,7 @@ func (rc *RedisCache) List(filter ExerciseFilter) ([]model.Exercise, error) {
 		// Cache corrupted, fall through to primary
 	}
 
-	exercises, err := rc.primary.List(filter)
+	exercises, err := rc.primary.List(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -112,8 +114,7 @@ func (rc *RedisCache) List(filter ExerciseFilter) ([]model.Exercise, error) {
 }
 
 // GetByID returns a single exercise by ID, using Redis cache.
-func (rc *RedisCache) GetByID(id string) (*model.Exercise, error) {
-	ctx := context.Background()
+func (rc *RedisCache) GetByID(ctx context.Context, id string) (*model.Exercise, error) {
 	cacheKey := exerciseDetailKey(id)
 
 	cached, err := rc.rdb.Get(ctx, cacheKey).Bytes()
@@ -124,7 +125,7 @@ func (rc *RedisCache) GetByID(id string) (*model.Exercise, error) {
 		}
 	}
 
-	exercise, err := rc.primary.GetByID(id)
+	exercise, err := rc.primary.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -141,18 +142,17 @@ func (rc *RedisCache) GetByID(id string) (*model.Exercise, error) {
 }
 
 // Create delegates to the primary review comment store (no caching for writes).
-func (rc *RedisCache) Create(comment *model.ReviewComment) error {
-	return rc.reviews.Create(comment)
+func (rc *RedisCache) Create(ctx context.Context, comment *model.ReviewComment) error {
+	return rc.reviews.Create(ctx, comment)
 }
 
 // ListByExerciseAndUser delegates to the primary review comment store.
-func (rc *RedisCache) ListByExerciseAndUser(exerciseID, userID string) ([]model.ReviewComment, error) {
-	return rc.reviews.ListByExerciseAndUser(exerciseID, userID)
+func (rc *RedisCache) ListByExerciseAndUser(ctx context.Context, exerciseID, userID string) ([]model.ReviewComment, error) {
+	return rc.reviews.ListByExerciseAndUser(ctx, exerciseID, userID)
 }
 
 // ListByExercise returns reference reviews, using Redis cache.
-func (rc *RedisCache) ListByExercise(exerciseID string) ([]model.ReferenceReview, error) {
-	ctx := context.Background()
+func (rc *RedisCache) ListByExercise(ctx context.Context, exerciseID string) ([]model.ReferenceReview, error) {
 	cacheKey := referenceReviewKey(exerciseID)
 
 	cached, err := rc.rdb.Get(ctx, cacheKey).Bytes()
@@ -163,7 +163,7 @@ func (rc *RedisCache) ListByExercise(exerciseID string) ([]model.ReferenceReview
 		}
 	}
 
-	reviews, err := rc.refs.ListByExercise(exerciseID)
+	reviews, err := rc.refs.ListByExercise(ctx, exerciseID)
 	if err != nil {
 		return nil, err
 	}
@@ -177,21 +177,21 @@ func (rc *RedisCache) ListByExercise(exerciseID string) ([]model.ReferenceReview
 }
 
 // SaveScore delegates to the primary score store (no caching for writes).
-func (rc *RedisCache) SaveScore(score *model.Score) error {
-	return rc.scores.SaveScore(score)
+func (rc *RedisCache) SaveScore(ctx context.Context, score *model.Score) error {
+	return rc.scores.SaveScore(ctx, score)
 }
 
 // GetScoresByExerciseAndUser delegates to the primary score store.
-func (rc *RedisCache) GetScoresByExerciseAndUser(exerciseID, userID string) ([]model.Score, error) {
-	return rc.scores.GetScoresByExerciseAndUser(exerciseID, userID)
+func (rc *RedisCache) GetScoresByExerciseAndUser(ctx context.Context, exerciseID, userID string) ([]model.Score, error) {
+	return rc.scores.GetScoresByExerciseAndUser(ctx, exerciseID, userID)
 }
 
 // GetScoresByUser delegates to the primary score store.
-func (rc *RedisCache) GetScoresByUser(userID string) ([]model.Score, error) {
-	return rc.scores.GetScoresByUser(userID)
+func (rc *RedisCache) GetScoresByUser(ctx context.Context, userID string) ([]model.Score, error) {
+	return rc.scores.GetScoresByUser(ctx, userID)
 }
 
 // CountCompletedExercises delegates to the primary score store.
-func (rc *RedisCache) CountCompletedExercises(userID string) (int, error) {
-	return rc.scores.CountCompletedExercises(userID)
+func (rc *RedisCache) CountCompletedExercises(ctx context.Context, userID string) (int, error) {
+	return rc.scores.CountCompletedExercises(ctx, userID)
 }

@@ -100,11 +100,12 @@ func seedTestUser(t *testing.T, db *sql.DB, name string) string {
 
 func TestPostgresStore_List_NoFilter(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
 	seedTestExercise(t, ps.db, "Exercise 1")
 	seedTestExercise(t, ps.db, "Exercise 2")
 
-	exercises, err := ps.List(ExerciseFilter{})
+	exercises, err := ps.List(ctx, ExerciseFilter{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -115,6 +116,7 @@ func TestPostgresStore_List_NoFilter(t *testing.T) {
 
 func TestPostgresStore_List_FilterByCategory(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
 	seedTestExercise(t, ps.db, "Security Exercise")
 
@@ -128,7 +130,7 @@ func TestPostgresStore_List_FilterByCategory(t *testing.T) {
 	}
 
 	cat := model.CategorySecurity
-	exercises, err := ps.List(ExerciseFilter{Category: &cat})
+	exercises, err := ps.List(ctx, ExerciseFilter{Category: &cat})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -139,6 +141,7 @@ func TestPostgresStore_List_FilterByCategory(t *testing.T) {
 
 func TestPostgresStore_List_FilterByCategoryTags(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
 	// Insert an exercise with category "design" but category_tags includes "security".
 	_, err := ps.db.Exec(`
@@ -150,7 +153,7 @@ func TestPostgresStore_List_FilterByCategoryTags(t *testing.T) {
 	}
 
 	cat := model.CategorySecurity
-	exercises, err := ps.List(ExerciseFilter{Category: &cat})
+	exercises, err := ps.List(ctx, ExerciseFilter{Category: &cat})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -161,6 +164,7 @@ func TestPostgresStore_List_FilterByCategoryTags(t *testing.T) {
 
 func TestPostgresStore_List_FilterByDifficulty(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
 	seedTestExercise(t, ps.db, "Beginner Exercise")
 
@@ -173,7 +177,7 @@ func TestPostgresStore_List_FilterByDifficulty(t *testing.T) {
 	}
 
 	diff := model.DifficultyBeginner
-	exercises, err := ps.List(ExerciseFilter{Difficulty: &diff})
+	exercises, err := ps.List(ctx, ExerciseFilter{Difficulty: &diff})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -184,6 +188,7 @@ func TestPostgresStore_List_FilterByDifficulty(t *testing.T) {
 
 func TestPostgresStore_List_HidesUnpublished(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
 	seedTestExercise(t, ps.db, "Published Exercise")
 
@@ -195,7 +200,7 @@ func TestPostgresStore_List_HidesUnpublished(t *testing.T) {
 		t.Fatalf("failed to insert draft exercise: %v", err)
 	}
 
-	exercises, err := ps.List(ExerciseFilter{})
+	exercises, err := ps.List(ctx, ExerciseFilter{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -206,10 +211,11 @@ func TestPostgresStore_List_HidesUnpublished(t *testing.T) {
 
 func TestPostgresStore_GetByID(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
 	id := seedTestExercise(t, ps.db, "Test Exercise")
 
-	ex, err := ps.GetByID(id)
+	ex, err := ps.GetByID(ctx, id)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -223,8 +229,9 @@ func TestPostgresStore_GetByID(t *testing.T) {
 
 func TestPostgresStore_GetByID_NotFound(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
-	ex, err := ps.GetByID("00000000-0000-0000-0000-000000000000")
+	ex, err := ps.GetByID(ctx, "00000000-0000-0000-0000-000000000000")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -235,6 +242,7 @@ func TestPostgresStore_GetByID_NotFound(t *testing.T) {
 
 func TestPostgresStore_CreateAndListReviewComments(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
 	exerciseID := seedTestExercise(t, ps.db, "Comment Exercise")
 	userID := seedTestUser(t, ps.db, "Test User")
@@ -248,14 +256,14 @@ func TestPostgresStore_CreateAndListReviewComments(t *testing.T) {
 		Category:   model.CategorySecurity,
 	}
 
-	if err := ps.Create(comment); err != nil {
+	if err := ps.Create(ctx, comment); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if comment.ID == "" {
 		t.Error("expected ID to be set")
 	}
 
-	comments, err := ps.ListByExerciseAndUser(exerciseID, userID)
+	comments, err := ps.ListByExerciseAndUser(ctx, exerciseID, userID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -269,8 +277,9 @@ func TestPostgresStore_CreateAndListReviewComments(t *testing.T) {
 
 func TestPostgresStore_ListByExerciseAndUser_Empty(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
-	comments, err := ps.ListByExerciseAndUser("00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000001")
+	comments, err := ps.ListByExerciseAndUser(ctx, "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000001")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -281,11 +290,12 @@ func TestPostgresStore_ListByExerciseAndUser_Empty(t *testing.T) {
 
 func TestPostgresStore_ListByExercise_ReferenceReviews(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
 	exerciseID := seedTestExercise(t, ps.db, "Ref Review Exercise")
 	seedTestReferenceReview(t, ps.db, exerciseID)
 
-	reviews, err := ps.ListByExercise(exerciseID)
+	reviews, err := ps.ListByExercise(ctx, exerciseID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -299,6 +309,7 @@ func TestPostgresStore_ListByExercise_ReferenceReviews(t *testing.T) {
 
 func TestPostgresStore_SaveAndGetScores(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
 	exerciseID := seedTestExercise(t, ps.db, "Score Exercise")
 	userID := seedTestUser(t, ps.db, "Score User")
@@ -312,7 +323,7 @@ func TestPostgresStore_SaveAndGetScores(t *testing.T) {
 		CategoryScores: json.RawMessage(`{}`),
 	}
 
-	if err := ps.SaveScore(score); err != nil {
+	if err := ps.SaveScore(ctx, score); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if score.ID == "" {
@@ -322,7 +333,7 @@ func TestPostgresStore_SaveAndGetScores(t *testing.T) {
 		t.Errorf("expected attempt_number 1, got %d", score.AttemptNumber)
 	}
 
-	scores, err := ps.GetScoresByExerciseAndUser(exerciseID, userID)
+	scores, err := ps.GetScoresByExerciseAndUser(ctx, exerciseID, userID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -336,6 +347,7 @@ func TestPostgresStore_SaveAndGetScores(t *testing.T) {
 
 func TestPostgresStore_SaveScore_AutoIncrementsAttempt(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
 	exerciseID := seedTestExercise(t, ps.db, "Multi Score Exercise")
 	userID := seedTestUser(t, ps.db, "Multi Score User")
@@ -349,7 +361,7 @@ func TestPostgresStore_SaveScore_AutoIncrementsAttempt(t *testing.T) {
 			OverallScore:   float64(i * 22),
 			CategoryScores: json.RawMessage(`{}`),
 		}
-		if err := ps.SaveScore(score); err != nil {
+		if err := ps.SaveScore(ctx, score); err != nil {
 			t.Fatalf("attempt %d: unexpected error: %v", i, err)
 		}
 		if score.AttemptNumber != i {
@@ -360,6 +372,7 @@ func TestPostgresStore_SaveScore_AutoIncrementsAttempt(t *testing.T) {
 
 func TestPostgresStore_GetScoresByUser(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
 	exerciseID1 := seedTestExercise(t, ps.db, "Exercise A")
 	exerciseID2 := seedTestExercise(t, ps.db, "Exercise B")
@@ -367,7 +380,7 @@ func TestPostgresStore_GetScoresByUser(t *testing.T) {
 	otherUserID := seedTestUser(t, ps.db, "User B")
 
 	for _, eid := range []string{exerciseID1, exerciseID2} {
-		if err := ps.SaveScore(&model.Score{
+		if err := ps.SaveScore(ctx, &model.Score{
 			UserID:         userID,
 			ExerciseID:     eid,
 			PrecisionScore: 50,
@@ -378,7 +391,7 @@ func TestPostgresStore_GetScoresByUser(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	}
-	if err := ps.SaveScore(&model.Score{
+	if err := ps.SaveScore(ctx, &model.Score{
 		UserID:         otherUserID,
 		ExerciseID:     exerciseID1,
 		PrecisionScore: 50,
@@ -389,7 +402,7 @@ func TestPostgresStore_GetScoresByUser(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	scores, err := ps.GetScoresByUser(userID)
+	scores, err := ps.GetScoresByUser(ctx, userID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -400,6 +413,7 @@ func TestPostgresStore_GetScoresByUser(t *testing.T) {
 
 func TestPostgresStore_CountCompletedExercises(t *testing.T) {
 	ps := setupTestDB(t)
+	ctx := context.Background()
 
 	exerciseID1 := seedTestExercise(t, ps.db, "Count Exercise 1")
 	exerciseID2 := seedTestExercise(t, ps.db, "Count Exercise 2")
@@ -407,7 +421,7 @@ func TestPostgresStore_CountCompletedExercises(t *testing.T) {
 
 	// Score exercise 1 twice and exercise 2 once.
 	for _, eid := range []string{exerciseID1, exerciseID1, exerciseID2} {
-		if err := ps.SaveScore(&model.Score{
+		if err := ps.SaveScore(ctx, &model.Score{
 			UserID:         userID,
 			ExerciseID:     eid,
 			PrecisionScore: 50,
@@ -419,7 +433,7 @@ func TestPostgresStore_CountCompletedExercises(t *testing.T) {
 		}
 	}
 
-	count, err := ps.CountCompletedExercises(userID)
+	count, err := ps.CountCompletedExercises(ctx, userID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

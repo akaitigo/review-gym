@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -83,7 +84,7 @@ func generateID(n int) string {
 }
 
 // List returns exercises matching the given filter.
-func (ms *MemoryStore) List(filter ExerciseFilter) ([]model.Exercise, error) {
+func (ms *MemoryStore) List(_ context.Context, filter ExerciseFilter) ([]model.Exercise, error) {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
@@ -114,7 +115,7 @@ func (ms *MemoryStore) List(filter ExerciseFilter) ([]model.Exercise, error) {
 }
 
 // GetByID returns a single exercise by ID.
-func (ms *MemoryStore) GetByID(id string) (*model.Exercise, error) {
+func (ms *MemoryStore) GetByID(_ context.Context, id string) (*model.Exercise, error) {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
@@ -129,7 +130,7 @@ func (ms *MemoryStore) GetByID(id string) (*model.Exercise, error) {
 
 // Create stores a new review comment.
 // If the store exceeds maxReviewComments, the oldest entries are evicted.
-func (ms *MemoryStore) Create(comment *model.ReviewComment) error {
+func (ms *MemoryStore) Create(_ context.Context, comment *model.ReviewComment) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
@@ -149,7 +150,7 @@ func (ms *MemoryStore) Create(comment *model.ReviewComment) error {
 }
 
 // ListByExerciseAndUser returns comments for a given exercise and user.
-func (ms *MemoryStore) ListByExerciseAndUser(exerciseID, userID string) ([]model.ReviewComment, error) {
+func (ms *MemoryStore) ListByExerciseAndUser(_ context.Context, exerciseID, userID string) ([]model.ReviewComment, error) {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
@@ -163,7 +164,7 @@ func (ms *MemoryStore) ListByExerciseAndUser(exerciseID, userID string) ([]model
 }
 
 // ListByExercise returns all reference reviews for an exercise.
-func (ms *MemoryStore) ListByExercise(exerciseID string) ([]model.ReferenceReview, error) {
+func (ms *MemoryStore) ListByExercise(_ context.Context, exerciseID string) ([]model.ReferenceReview, error) {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
@@ -176,7 +177,7 @@ func (ms *MemoryStore) ListByExercise(exerciseID string) ([]model.ReferenceRevie
 // SaveScore persists a scoring result.
 // It atomically computes the attempt number under the write lock to prevent
 // race conditions where concurrent requests could get the same attempt number.
-func (ms *MemoryStore) SaveScore(score *model.Score) error {
+func (ms *MemoryStore) SaveScore(_ context.Context, score *model.Score) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
@@ -205,7 +206,7 @@ func (ms *MemoryStore) SaveScore(score *model.Score) error {
 
 // GetScoresByExerciseAndUser returns all scores for a given exercise and user,
 // ordered by attempt number.
-func (ms *MemoryStore) GetScoresByExerciseAndUser(exerciseID, userID string) ([]model.Score, error) {
+func (ms *MemoryStore) GetScoresByExerciseAndUser(_ context.Context, exerciseID, userID string) ([]model.Score, error) {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
@@ -219,7 +220,7 @@ func (ms *MemoryStore) GetScoresByExerciseAndUser(exerciseID, userID string) ([]
 }
 
 // GetScoresByUser returns all scores for a given user.
-func (ms *MemoryStore) GetScoresByUser(userID string) ([]model.Score, error) {
+func (ms *MemoryStore) GetScoresByUser(_ context.Context, userID string) ([]model.Score, error) {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
@@ -233,7 +234,7 @@ func (ms *MemoryStore) GetScoresByUser(userID string) ([]model.Score, error) {
 }
 
 // CountCompletedExercises returns the number of distinct exercises scored by a user.
-func (ms *MemoryStore) CountCompletedExercises(userID string) (int, error) {
+func (ms *MemoryStore) CountCompletedExercises(_ context.Context, userID string) (int, error) {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 

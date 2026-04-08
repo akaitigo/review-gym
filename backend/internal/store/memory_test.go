@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"testing"
 
 	"github.com/akaitigo/review-gym/internal/model"
@@ -8,8 +9,9 @@ import (
 
 func TestNewMemoryStore(t *testing.T) {
 	ms := NewMemoryStore()
+	ctx := context.Background()
 
-	exercises, err := ms.List(ExerciseFilter{})
+	exercises, err := ms.List(ctx, ExerciseFilter{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -20,8 +22,9 @@ func TestNewMemoryStore(t *testing.T) {
 
 func TestMemoryStore_List_NoFilter(t *testing.T) {
 	ms := NewMemoryStore()
+	ctx := context.Background()
 
-	exercises, err := ms.List(ExerciseFilter{})
+	exercises, err := ms.List(ctx, ExerciseFilter{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -32,10 +35,11 @@ func TestMemoryStore_List_NoFilter(t *testing.T) {
 
 func TestMemoryStore_List_FilterByCategory(t *testing.T) {
 	ms := NewMemoryStore()
+	ctx := context.Background()
 	cat := model.CategorySecurity
 	filter := ExerciseFilter{Category: &cat}
 
-	exercises, err := ms.List(filter)
+	exercises, err := ms.List(ctx, filter)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -61,10 +65,11 @@ func TestMemoryStore_List_FilterByCategory(t *testing.T) {
 
 func TestMemoryStore_List_FilterByDifficulty(t *testing.T) {
 	ms := NewMemoryStore()
+	ctx := context.Background()
 	diff := model.DifficultyBeginner
 	filter := ExerciseFilter{Difficulty: &diff}
 
-	exercises, err := ms.List(filter)
+	exercises, err := ms.List(ctx, filter)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -77,14 +82,15 @@ func TestMemoryStore_List_FilterByDifficulty(t *testing.T) {
 
 func TestMemoryStore_GetByID(t *testing.T) {
 	ms := NewMemoryStore()
+	ctx := context.Background()
 
-	exercises, _ := ms.List(ExerciseFilter{})
+	exercises, _ := ms.List(ctx, ExerciseFilter{})
 	if len(exercises) == 0 {
 		t.Fatal("no exercises loaded")
 	}
 
 	first := exercises[0]
-	got, err := ms.GetByID(first.ID)
+	got, err := ms.GetByID(ctx, first.ID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -101,8 +107,9 @@ func TestMemoryStore_GetByID(t *testing.T) {
 
 func TestMemoryStore_GetByID_NotFound(t *testing.T) {
 	ms := NewMemoryStore()
+	ctx := context.Background()
 
-	got, err := ms.GetByID("nonexistent")
+	got, err := ms.GetByID(ctx, "nonexistent")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -113,6 +120,7 @@ func TestMemoryStore_GetByID_NotFound(t *testing.T) {
 
 func TestMemoryStore_CreateAndListReviewComments(t *testing.T) {
 	ms := NewMemoryStore()
+	ctx := context.Background()
 
 	comment := &model.ReviewComment{
 		ExerciseID: "00000001",
@@ -123,14 +131,14 @@ func TestMemoryStore_CreateAndListReviewComments(t *testing.T) {
 		Category:   model.CategorySecurity,
 	}
 
-	if err := ms.Create(comment); err != nil {
+	if err := ms.Create(ctx, comment); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if comment.ID == "" {
 		t.Error("expected ID to be set")
 	}
 
-	comments, err := ms.ListByExerciseAndUser("00000001", "user-1")
+	comments, err := ms.ListByExerciseAndUser(ctx, "00000001", "user-1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -144,8 +152,9 @@ func TestMemoryStore_CreateAndListReviewComments(t *testing.T) {
 
 func TestMemoryStore_ListByExerciseAndUser_Empty(t *testing.T) {
 	ms := NewMemoryStore()
+	ctx := context.Background()
 
-	comments, err := ms.ListByExerciseAndUser("nonexistent", "user-1")
+	comments, err := ms.ListByExerciseAndUser(ctx, "nonexistent", "user-1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -156,8 +165,9 @@ func TestMemoryStore_ListByExerciseAndUser_Empty(t *testing.T) {
 
 func TestMemoryStore_ListByExercise_ReferenceReviews(t *testing.T) {
 	ms := NewMemoryStore()
+	ctx := context.Background()
 
-	reviews, err := ms.ListByExercise("00000001")
+	reviews, err := ms.ListByExercise(ctx, "00000001")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -173,6 +183,7 @@ func TestMemoryStore_ListByExercise_ReferenceReviews(t *testing.T) {
 
 func TestMemoryStore_SaveAndGetScores(t *testing.T) {
 	ms := NewMemoryStore()
+	ctx := context.Background()
 
 	score := &model.Score{
 		UserID:         "user-1",
@@ -183,14 +194,14 @@ func TestMemoryStore_SaveAndGetScores(t *testing.T) {
 		AttemptNumber:  1,
 	}
 
-	if err := ms.SaveScore(score); err != nil {
+	if err := ms.SaveScore(ctx, score); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if score.ID == "" {
 		t.Error("expected ID to be set")
 	}
 
-	scores, err := ms.GetScoresByExerciseAndUser("00000001", "user-1")
+	scores, err := ms.GetScoresByExerciseAndUser(ctx, "00000001", "user-1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -204,6 +215,7 @@ func TestMemoryStore_SaveAndGetScores(t *testing.T) {
 
 func TestMemoryStore_GetScoresByUser(t *testing.T) {
 	ms := NewMemoryStore()
+	ctx := context.Background()
 
 	score1 := &model.Score{
 		UserID:        "user-1",
@@ -221,11 +233,11 @@ func TestMemoryStore_GetScoresByUser(t *testing.T) {
 		AttemptNumber: 1,
 	}
 
-	_ = ms.SaveScore(score1)
-	_ = ms.SaveScore(score2)
-	_ = ms.SaveScore(score3)
+	_ = ms.SaveScore(ctx, score1)
+	_ = ms.SaveScore(ctx, score2)
+	_ = ms.SaveScore(ctx, score3)
 
-	scores, err := ms.GetScoresByUser("user-1")
+	scores, err := ms.GetScoresByUser(ctx, "user-1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -236,12 +248,13 @@ func TestMemoryStore_GetScoresByUser(t *testing.T) {
 
 func TestMemoryStore_CountCompletedExercises(t *testing.T) {
 	ms := NewMemoryStore()
+	ctx := context.Background()
 
-	_ = ms.SaveScore(&model.Score{UserID: "user-1", ExerciseID: "ex-1", AttemptNumber: 1})
-	_ = ms.SaveScore(&model.Score{UserID: "user-1", ExerciseID: "ex-1", AttemptNumber: 2})
-	_ = ms.SaveScore(&model.Score{UserID: "user-1", ExerciseID: "ex-2", AttemptNumber: 1})
+	_ = ms.SaveScore(ctx, &model.Score{UserID: "user-1", ExerciseID: "ex-1", AttemptNumber: 1})
+	_ = ms.SaveScore(ctx, &model.Score{UserID: "user-1", ExerciseID: "ex-1", AttemptNumber: 2})
+	_ = ms.SaveScore(ctx, &model.Score{UserID: "user-1", ExerciseID: "ex-2", AttemptNumber: 1})
 
-	count, err := ms.CountCompletedExercises("user-1")
+	count, err := ms.CountCompletedExercises(ctx, "user-1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

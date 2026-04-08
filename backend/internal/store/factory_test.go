@@ -30,7 +30,7 @@ func TestNewStores_MemoryDefault(t *testing.T) {
 	}
 
 	// Verify it loaded seed data.
-	exercises, err := stores.Exercises.List(ExerciseFilter{})
+	exercises, err := stores.Exercises.List(ctx, ExerciseFilter{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -49,7 +49,7 @@ func TestNewStores_MemoryExplicit(t *testing.T) {
 	}
 	defer stores.Close()
 
-	exercises, err := stores.Exercises.List(ExerciseFilter{})
+	exercises, err := stores.Exercises.List(ctx, ExerciseFilter{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -93,7 +93,7 @@ func TestNewStores_RedisFallbackOnInvalidURL(t *testing.T) {
 	defer stores.Close()
 
 	// Should still work with memory store.
-	exercises, err := stores.Exercises.List(ExerciseFilter{})
+	exercises, err := stores.Exercises.List(ctx, ExerciseFilter{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

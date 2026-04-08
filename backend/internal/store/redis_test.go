@@ -51,7 +51,7 @@ func TestRedisCache_List_CachesResult(t *testing.T) {
 	}()
 
 	// First call should hit the spy.
-	exercises, err := rc.List(ExerciseFilter{})
+	exercises, err := rc.List(ctx, ExerciseFilter{})
 	if err != nil {
 		t.Fatalf("first List call failed: %v", err)
 	}
@@ -63,7 +63,7 @@ func TestRedisCache_List_CachesResult(t *testing.T) {
 	}
 
 	// Second call should hit cache.
-	exercises, err = rc.List(ExerciseFilter{})
+	exercises, err = rc.List(ctx, ExerciseFilter{})
 	if err != nil {
 		t.Fatalf("second List call failed: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestRedisCache_GetByID_CachesResult(t *testing.T) {
 	}()
 
 	// First call hits spy.
-	ex, err := rc.GetByID("test-id")
+	ex, err := rc.GetByID(ctx, "test-id")
 	if err != nil {
 		t.Fatalf("first GetByID call failed: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestRedisCache_GetByID_CachesResult(t *testing.T) {
 	}
 
 	// Second call hits cache.
-	ex, err = rc.GetByID("test-id")
+	ex, err = rc.GetByID(ctx, "test-id")
 	if err != nil {
 		t.Fatalf("second GetByID call failed: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestRedisCache_GetByID_NotFound(t *testing.T) {
 		}
 	}()
 
-	ex, err := rc.GetByID("nonexistent")
+	ex, err := rc.GetByID(ctx, "nonexistent")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -186,12 +186,12 @@ func TestRedisCache_DelegatesWriteOperations(t *testing.T) {
 		Content:    "Test via Redis cache",
 		Category:   model.CategorySecurity,
 	}
-	if err := rc.Create(comment); err != nil {
+	if err := rc.Create(ctx, comment); err != nil {
 		t.Fatalf("create failed: %v", err)
 	}
 
 	// Verify it was written to the underlying store.
-	comments, err := rc.ListByExerciseAndUser("00000001", "user-1")
+	comments, err := rc.ListByExerciseAndUser(ctx, "00000001", "user-1")
 	if err != nil {
 		t.Fatalf("list failed: %v", err)
 	}
@@ -207,11 +207,11 @@ func TestRedisCache_DelegatesWriteOperations(t *testing.T) {
 		RecallScore:    60,
 		OverallScore:   68,
 	}
-	if err := rc.SaveScore(score); err != nil {
+	if err := rc.SaveScore(ctx, score); err != nil {
 		t.Fatalf("save score failed: %v", err)
 	}
 
-	scores, err := rc.GetScoresByExerciseAndUser("00000001", "user-1")
+	scores, err := rc.GetScoresByExerciseAndUser(ctx, "00000001", "user-1")
 	if err != nil {
 		t.Fatalf("get scores failed: %v", err)
 	}
@@ -227,12 +227,12 @@ type spyExerciseStore struct {
 	getByIDCalls int
 }
 
-func (s *spyExerciseStore) List(_ ExerciseFilter) ([]model.Exercise, error) {
+func (s *spyExerciseStore) List(_ context.Context, _ ExerciseFilter) ([]model.Exercise, error) {
 	s.listCalls++
 	return s.exercises, nil
 }
 
-func (s *spyExerciseStore) GetByID(id string) (*model.Exercise, error) {
+func (s *spyExerciseStore) GetByID(_ context.Context, id string) (*model.Exercise, error) {
 	s.getByIDCalls++
 	for i := range s.exercises {
 		if s.exercises[i].ID == id {
