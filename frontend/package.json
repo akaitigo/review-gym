@@ -23,13 +23,13 @@
 		"@vitest/coverage-v8": "^4.0.0",
 		"oxlint": "^1.0.0",
 		"typescript": "^6.0.0",
-		"vite": "^8.0.0",
+		"vite": "^8.0.4",
 		"vitest": "^4.0.0"
 	},
 	"dependencies": {
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
-		"react-router-dom": "^7.13.2"
+		"react-router-dom": "^7.14.0"
 	},
 	"engines": {
 		"node": ">=22.0.0"
