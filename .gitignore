@@ -12,6 +12,7 @@ coverage/
 *.exe
 *.test
 *.prof
+/backend/migrate
 
 # IDE
 .idea/
