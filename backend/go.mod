@@ -6,7 +6,7 @@ require github.com/golang-migrate/migrate/v4 v4.19.1
 
 require (
 	github.com/jackc/pgx/v5 v5.10.0
-	github.com/redis/go-redis/v9 v9.21.0
+	github.com/redis/go-redis/v9 v9.22.0
 )
 
 require (
@@ -18,5 +18,6 @@ require (
 	github.com/lib/pq v1.12.3 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
 )
