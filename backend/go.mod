@@ -1,8 +1,8 @@
 module github.com/akaitigo/review-gym
 
-go 1.25.0
+go 1.25.11
 
-require github.com/golang-migrate/migrate/v4 v4.19.1
+require github.com/golang-migrate/migrate/v4 v4.20.1
 
 require (
 	github.com/jackc/pgx/v5 v5.10.0
@@ -17,6 +17,6 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/lib/pq v1.12.3 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/sync v0.18.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 )
